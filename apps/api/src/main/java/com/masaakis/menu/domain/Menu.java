@@ -43,6 +43,21 @@ public class Menu {
     @Column(nullable = false)
     private boolean published;
 
+    @Column(name = "brand_primary_color", nullable = false, length = 7)
+    private String brandPrimaryColor;
+
+    @Column(name = "brand_surface_color", nullable = false, length = 7)
+    private String brandSurfaceColor;
+
+    @Column(name = "brand_font", nullable = false, length = 20)
+    private String brandFont;
+
+    @Column(name = "brand_layout", nullable = false, length = 20)
+    private String brandLayout;
+
+    @Column(name = "hide_powered_by", nullable = false)
+    private boolean hidePoweredBy;
+
     @OneToMany(mappedBy = "menu", cascade = CascadeType.ALL)
     @OrderBy("sortOrder ASC, name ASC")
     private List<MenuCategory> categories = new ArrayList<>();
@@ -77,5 +92,10 @@ public class Menu {
     public List<MenuCategory> getCategories() {
         return List.copyOf(categories);
     }
-}
 
+    public String getBrandPrimaryColor(){return brandPrimaryColor;}
+    public String getBrandSurfaceColor(){return brandSurfaceColor;}
+    public String getBrandFont(){return brandFont;}
+    public String getBrandLayout(){return brandLayout;}
+    public boolean isHidePoweredBy(){return hidePoweredBy;}
+}

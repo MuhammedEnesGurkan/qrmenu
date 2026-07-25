@@ -45,6 +45,8 @@ public class MenuCategory {
     protected MenuCategory() {
     }
 
+    public UUID getId(){return id;}
+
     public UUID getTenantId() {
         return tenantId;
     }
@@ -61,4 +63,3 @@ public class MenuCategory {
         return List.copyOf(products);
     }
 }
-

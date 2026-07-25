@@ -122,7 +122,7 @@ public class IdentityService {
         String tokenHash = SecurityHashes.sha256(rawToken);
         return jdbc.sql("""
                 select s.id as session_id, s.csrf_hash, u.id as user_id, u.display_name,
-                       m.tenant_id, m.branch_id, m.role_code
+                       m.tenant_id, coalesce(s.active_branch_id,m.branch_id) branch_id, m.role_code
                 from staff_session s
                 join app_user u on u.id = s.user_id and u.active = true
                 join membership m on m.user_id = u.id and m.active = true

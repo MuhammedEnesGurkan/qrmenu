@@ -259,6 +259,32 @@ sonuçları ve varsa kalan işler bu dosyaya eklenecektir.
   commit’i, sonradan değişmiş fiyatta PARTIAL_ROLLBACK ve export formula escaping
   birlikte doğrulandı.
 
++## 25 Temmuz 2026 — Çoklu dil, rapor, çoklu şube ve marka
+
+- Supabase Flyway V10 ile menü/kategori/ürün çevirileri, oturumun aktif şubesi
+  ve yapılandırılmış marka alanları eklendi; çeviri tablolarında RLS ve istemci
+  rol erişim engeli etkinleştirildi.
+- MULTILINGUAL guard’lı dil kaydı, ürün bazlı çeviri tamamlama sayacı, public
+  locale allow-list/fallback ve menü dil seçici tamamlandı.
+- ADVANCED_REPORTS için en fazla 90 günlük durum adetleri, tahmini sipariş
+  değerleri ve ürün hazırlama adetleri eklendi; ödeme, tahsilat ve kesin ciro
+  olmadığı API ve arayüzde açıkça belirtiliyor.
+- MULTI_BRANCH için tenant başına 5 etkin şube limiti, şubeyle birlikte boş
+  menü oluşturma, OWNER-only aktif şube değiştirme ve oturum branch scope’u
+  tamamlandı. Abonelik bitse de mevcut şubeler arasında veri okuma korunuyor.
+- BRANDING yalnız güvenli hex renkler ile SYSTEM/SERIF/ROUNDED font ve
+  CARDS/COMPACT yerleşim allow-list’lerini kabul ediyor; serbest CSS/HTML
+  saklanmıyor.
+- Public menü seçili çeviriyi ve marka renk/font seçeneklerini uyguluyor;
+  powered-by görünürlüğü yapılandırılmış boolean ile yönetiliyor.
+- `/admin/ayarlar` ekranı şube yönetimi, dil/eksik çeviri görünümü, marka
+  seçenekleri ve operasyon raporunu tek yerde sunuyor.
+- API testleri 6/6, web Vitest 1/1, TypeScript ve Next.js production build
+  başarılı. V10 Supabase’e uygulandı.
+- Gerçek Supabase smoke testinde İngilizce menü/ürün, public locale, marka
+  rengi, tahmini değer uyarılı rapor, yeni şube, session branch switch ve
+  merkez şubeye dönüş birlikte doğrulandı.
+
 ## Kayıt kuralı
 
 Her yeni aşamada bu belgeye aşağıdakiler eklenecektir:

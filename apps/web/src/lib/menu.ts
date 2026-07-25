@@ -17,6 +17,8 @@ const menuSchema = z.object({
   description: z.string().nullable(),
   logoUrl: z.string().url().nullable(),
   locale: z.string(),
+  availableLocales: z.array(z.string()).optional(),
+  branding: z.object({primaryColor:z.string(),surfaceColor:z.string(),font:z.string(),layout:z.string(),hidePoweredBy:z.boolean()}).optional(),
   categories: z.array(
     z.object({
       name: z.string(),
@@ -78,11 +80,11 @@ const demoMenu: PublicMenu = {
   ],
 };
 
-export async function getPublicMenu(slug: string): Promise<PublicMenu | null> {
+export async function getPublicMenu(slug: string,locale?:string): Promise<PublicMenu | null> {
   const baseUrl = process.env.API_URL ?? "http://localhost:8080";
   try {
     const response = await fetch(
-      `${baseUrl}/api/public/menus/${encodeURIComponent(slug)}`,
+      `${baseUrl}/api/public/menus/${encodeURIComponent(slug)}${locale?"?locale="+encodeURIComponent(locale):""}`,
       { next: { revalidate: 30 } },
     );
     if (response.status === 404) return null;
@@ -108,4 +110,3 @@ export function formatMoney(
     minimumFractionDigits: 2,
   }).format(amount);
 }
-

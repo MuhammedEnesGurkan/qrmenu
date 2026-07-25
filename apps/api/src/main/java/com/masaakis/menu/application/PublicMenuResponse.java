@@ -10,8 +10,14 @@ public record PublicMenuResponse(
         String description,
         String logoUrl,
         String locale,
-        List<CategoryResponse> categories
+        List<CategoryResponse> categories,
+        List<String> availableLocales,
+        Branding branding
 ) {
+    public PublicMenuResponse(String slug,String name,String description,String logoUrl,String locale,List<CategoryResponse>categories){
+        this(slug,name,description,logoUrl,locale,categories,List.of(locale),new Branding("#176b52","#fffdf8","SYSTEM","CARDS",false));
+    }
+    public record Branding(String primaryColor,String surfaceColor,String font,String layout,boolean hidePoweredBy){}
     public record CategoryResponse(String name, List<ProductResponse> products) {
     }
 
@@ -27,4 +33,3 @@ public record PublicMenuResponse(
     ) {
     }
 }
-
