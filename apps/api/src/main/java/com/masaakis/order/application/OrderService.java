@@ -16,8 +16,8 @@ import java.util.*;
 
 @Service
 public class OrderService {
-    private final JdbcClient jdbc;private final AddonEntitlementService entitlements;private final PublicMenuService menus;
-    public OrderService(JdbcClient jdbc,AddonEntitlementService entitlements,PublicMenuService menus){this.jdbc=jdbc;this.entitlements=entitlements;this.menus=menus;}
+    private final JdbcClient jdbc;private final AddonEntitlementService entitlements;private final PublicMenuService menus;private final OrderEventStream events;
+    public OrderService(JdbcClient jdbc,AddonEntitlementService entitlements,PublicMenuService menus,OrderEventStream events){this.jdbc=jdbc;this.entitlements=entitlements;this.menus=menus;this.events=events;}
 
     @Transactional(readOnly=true)
     public TableMenu tableMenu(TableSessionService.TableContext context){
@@ -64,7 +64,7 @@ public class OrderService {
                 """).param("id",UUID.randomUUID()).param("tenantId",context.tenantId()).param("orderId",orderId)
                 .param("productId",item.id()).param("name",item.name()).param("price",item.price()).param("currency",item.currency())
                 .param("quantity",item.quantity()).param("notes",item.notes()).update();
-        outbox(context.tenantId(),orderId,"ORDER_SUBMITTED");return getForSession(context,orderId);
+        outbox(context.tenantId(),orderId,"ORDER_SUBMITTED");events.afterCommit(context.tenantId(),context.branchId(),"ORDER_SUBMITTED");return getForSession(context,orderId);
     }
 
     @Transactional(readOnly=true)
@@ -91,7 +91,7 @@ public class OrderService {
                 .param("current",current).param("version",version).update();
         if(changed==0)throw new AppException(HttpStatus.CONFLICT,"ORDER_VERSION_CONFLICT","Sipariş güncellendi; listeyi yenileyin.");
         if(target.equals("ACCEPTED")&&entitlements.active(p.tenantId(),"KITCHEN_STATIONS"))assignStations(p.tenantId(),id);
-        outbox(p.tenantId(),id,"ORDER_"+target);return order(id,p.tenantId()," and o.branch_id=:branchId",Map.of("branchId",p.branchId())).orElseThrow();}
+        outbox(p.tenantId(),id,"ORDER_"+target);events.afterCommit(p.tenantId(),p.branchId(),"ORDER_"+target);return order(id,p.tenantId()," and o.branch_id=:branchId",Map.of("branchId",p.branchId())).orElseThrow();}
 
     @Transactional
     public UUID callWaiter(TableSessionService.TableContext c,String message){entitlements.require(c.tenantId(),"TABLE_ORDERING");
@@ -101,7 +101,7 @@ public class OrderService {
                 insert into waiter_call(id,tenant_id,branch_id,table_id,table_session_id,message)
                 values(:id,:tenantId,:branchId,:tableId,:sessionId,:message)
                 """).param("id",id).param("tenantId",c.tenantId()).param("branchId",c.branchId()).param("tableId",c.tableId())
-                .param("sessionId",c.sessionId()).param("message",clean(message,200)).update();outbox(c.tenantId(),id,"WAITER_CALLED");return id;}
+                .param("sessionId",c.sessionId()).param("message",clean(message,200)).update();outbox(c.tenantId(),id,"WAITER_CALLED");events.afterCommit(c.tenantId(),c.branchId(),"WAITER_CALLED");return id;}
 
     @Transactional(readOnly=true)
     public List<WaiterCall> calls(StaffPrincipal p){p.require("read");return jdbc.sql("""
@@ -116,7 +116,7 @@ public class OrderService {
     public void updateCall(StaffPrincipal p,UUID id,String status){p.require("order/deliver");if(!List.of("ACKNOWLEDGED","RESOLVED").contains(status))throw bad("WAITER_CALL_STATE_INVALID","Çağrı durumu geçersiz.");
         int n=jdbc.sql("update waiter_call set status=:status,updated_at=now() where id=:id and tenant_id=:tenantId and branch_id=:branchId")
                 .param("status",status).param("id",id).param("tenantId",p.tenantId()).param("branchId",p.branchId()).update();
-        if(n==0)throw new AppException(HttpStatus.NOT_FOUND,"WAITER_CALL_NOT_FOUND","Çağrı bulunamadı.");}
+        if(n==0)throw new AppException(HttpStatus.NOT_FOUND,"WAITER_CALL_NOT_FOUND","Çağrı bulunamadı.");events.afterCommit(p.tenantId(),p.branchId(),"WAITER_CALL_"+status);}
 
     private Optional<OrderView> findByKey(TableSessionService.TableContext c,String key){
         return jdbc.sql("select id from customer_order where tenant_id=:tenantId and table_session_id=:sessionId and idempotency_key=:key")

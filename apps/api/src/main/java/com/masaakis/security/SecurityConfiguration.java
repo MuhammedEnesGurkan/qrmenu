@@ -25,6 +25,7 @@ public class SecurityConfiguration {
             HttpSecurity http,
             SessionAuthenticationFilter sessionAuthenticationFilter,
             CsrfProtectionFilter csrfProtectionFilter
+            ,ApiRateLimitFilter rateLimitFilter,RequestMetadataFilter metadataFilter
     ) throws Exception {
         return http
                 .cors(Customizer.withDefaults())
@@ -42,10 +43,12 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/webhooks/subscriptions").permitAll()
                         .requestMatchers("/api/auth/me", "/api/auth/logout", "/api/admin/**").authenticated()
-                        .requestMatchers("/actuator/health", "/v3/api-docs/**", "/swagger-ui/**",
+                        .requestMatchers("/actuator/health", "/actuator/health/**", "/v3/api-docs/**", "/swagger-ui/**",
                                 "/swagger-ui.html", "/error").permitAll()
                         .anyRequest().denyAll())
                 .addFilterBefore(sessionAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(rateLimitFilter, SessionAuthenticationFilter.class)
+                .addFilterBefore(metadataFilter, ApiRateLimitFilter.class)
                 .addFilterAfter(csrfProtectionFilter, SessionAuthenticationFilter.class)
                 .headers(headers -> headers
                         .contentSecurityPolicy(csp -> csp.policyDirectives(
@@ -73,6 +76,20 @@ public class SecurityConfiguration {
 
     @Bean
     FilterRegistrationBean<CsrfProtectionFilter> csrfFilterRegistration(CsrfProtectionFilter filter) {
+        var registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    FilterRegistrationBean<ApiRateLimitFilter> rateFilterRegistration(ApiRateLimitFilter filter) {
+        var registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    @Bean
+    FilterRegistrationBean<RequestMetadataFilter> metadataFilterRegistration(RequestMetadataFilter filter) {
         var registration = new FilterRegistrationBean<>(filter);
         registration.setEnabled(false);
         return registration;

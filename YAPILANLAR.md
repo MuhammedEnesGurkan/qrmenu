@@ -121,10 +121,11 @@ sonuçları ve varsa kalan işler bu dosyaya eklenecektir.
 - API testleri 5/5 geçti; Supabase üzerinde kayıt → `/me` → CSRF korumalı
   çıkış smoke senaryosu başarıyla doğrulandı.
 
-## Henüz tamamlanmayan ana modüller
+## Uygulama kapsamı durumu
 
-- Mutfak istasyonları ve self-servis ekranları
-- Raporlama, çoklu dil ve production deployment
+- Planlanan ürün modülleri tamamlandı; kalan işler uygulama geliştirmesi değil,
+  hedef platformda secret tanımlama, image yayınlama ve periyodik operasyon
+  tatbikatlarıdır.
 
 ## 25 Temmuz 2026 — Masa QR, sipariş ve garson akışı
 
@@ -210,7 +211,7 @@ sonuçları ve varsa kalan işler bu dosyaya eklenecektir.
   OWNER’ın WAITER oluşturması, WAITER’ın okuması ve katalog yazmasının 403
   ile engellenmesi doğrulandı.
 
-+## 25 Temmuz 2026 — Mutfak istasyonları ve self-servis
+## 25 Temmuz 2026 — Mutfak istasyonları ve self-servis
 
 - Supabase Flyway V8 ile şube public hazır ekranı slug’ı, mutfak istasyonları,
   kategori-istasyon eşlemesi, sipariş kalemi mutfak durumu ve açık teslim
@@ -233,7 +234,7 @@ sonuçları ve varsa kalan işler bu dosyaya eklenecektir.
   teslim numarası, istasyon yönlendirmesi, PREPARING/DONE ve public hazır ekranında
   READY_FOR_PICKUP görünümü birlikte doğrulandı.
 
-+## 25 Temmuz 2026 — Katalog Pro içe aktarma ve toplu fiyat
+## 25 Temmuz 2026 — Katalog Pro içe aktarma ve toplu fiyat
 
 - Supabase Flyway V9 ile hash-idempotent import job/satırları ve
   PriceChangeBatch/PriceChangeItem snapshot tabloları eklendi; RLS ve doğrudan
@@ -259,7 +260,7 @@ sonuçları ve varsa kalan işler bu dosyaya eklenecektir.
   commit’i, sonradan değişmiş fiyatta PARTIAL_ROLLBACK ve export formula escaping
   birlikte doğrulandı.
 
-+## 25 Temmuz 2026 — Çoklu dil, rapor, çoklu şube ve marka
+## 25 Temmuz 2026 — Çoklu dil, rapor, çoklu şube ve marka
 
 - Supabase Flyway V10 ile menü/kategori/ürün çevirileri, oturumun aktif şubesi
   ve yapılandırılmış marka alanları eklendi; çeviri tablolarında RLS ve istemci
@@ -284,6 +285,45 @@ sonuçları ve varsa kalan işler bu dosyaya eklenecektir.
 - Gerçek Supabase smoke testinde İngilizce menü/ürün, public locale, marka
   rengi, tahmini değer uyarılı rapor, yeni şube, session branch switch ve
   merkez şubeye dönüş birlikte doğrulandı.
+
+## 25 Temmuz 2026 — Production hazırlığı ve son doğrulama
+
+- Flyway V11 ile görsel binary içeriği ile object-store anahtarı arasında
+  tutarlılık constraint'i eklendi; eski veritabanı görsellerini okumaya devam
+  eden, yeni görselleri S3-compatible depoya yazan geçiş tamamlandı.
+- Production profilinde Secure cookie, HTTPS public URL, en az 32 karakter
+  webhook secret'ı, object storage ve ayrı Flyway job kullanımı için fail-fast
+  kontroller eklendi.
+- Kayıt, giriş, QR exchange, webhook, okuma ve yazma yollarına farklı pencereli
+  IP/path rate-limit; doğrulanmış `X-Request-Id` ve hassas yanıtlara `no-store`
+  header'ları eklendi.
+- Sipariş, durum ve garson çağrısı değişiklikleri commit sonrasında SSE ile
+  personel ekranına iletiliyor; bağlantı kesilirse 15 saniyelik polling fallback'i
+  çalışıyor.
+- Liveness yalnız process'i, readiness Supabase bağlantısını denetleyecek
+  biçimde Actuator grupları ayrıldı.
+- API ve Next.js için non-root, healthcheck'li Dockerfile'lar; read-only
+  filesystem, tmpfs, tüm capability'leri düşürme ve no-new-privileges kullanan
+  production Compose tanımı eklendi. Production Compose yerel veritabanı içermez.
+- GitHub Actions'a Java 21 API testleri, Node 24 typecheck/Vitest/build/audit,
+  Chromium-Firefox-WebKit Playwright matrisi ve iki container build işi eklendi.
+- `age` ile şifreli custom-format `pg_dump`, SHA-256 manifest, izole hedef ve
+  açık onay korumalı restore scriptleri ile yayınlama/olay/backup runbook'u
+  tamamlandı.
+- Next bağımlılık zincirindeki Playwright, PostCSS, Sharp, Vite ve Vitest
+  güvenlik bulguları yamalı sürümlere yükseltildi; tam `npm audit` sonucu 0 açık.
+- API test sonucu 7 çalıştırma, 0 hata ve 1 kontrollü skip'tir. Skip edilen
+  Testcontainers V1–V11/RLS testi yerel Docker daemon kapalı olduğu içindir;
+  Docker bulunan CI runner'ında zorunlu olarak çalışır. API production JAR
+  paketi başarıyla üretildi.
+- Web sonucu: TypeScript başarılı, Vitest 1/1, Next.js production build başarılı
+  ve Playwright 6/6. Testler 320, 360, 375, 390, 412 px ile masaüstünde Chromium,
+  WebKit ve Firefox'u kapsıyor; arama alanı tüm motorlarda 44 px dokunma hedefi.
+- Geliştirme ve production Compose config'leri ile backup/restore PowerShell
+  sözdizimi doğrulandı. Docker daemon ve `age` bu makinede çalışmadığı için image
+  build ile gerçek restore tatbikatı CI/hedef operasyon ortamında yürütülecek.
+- Gerçek Supabase smoke testinde şema V11, readiness/liveness `UP`, request-id,
+  `no-store` ve QR exchange rate-limit'inin 31. istekte 429 vermesi doğrulandı.
 
 ## Kayıt kuralı
 

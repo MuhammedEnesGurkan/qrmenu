@@ -54,6 +54,14 @@ management:
     health:
       probes:
         enabled: true
+      group:
+        readiness:
+          include: readinessState,db
+        liveness:
+          include: livenessState,ping
+  info:
+    env:
+      enabled: true
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
@@ -62,3 +70,9 @@ app:
   public-base-url: ${PUBLIC_BASE_URL:http://localhost:3000}
   billing-webhook-secret: ${BILLING_WEBHOOK_SECRET:local-dev-change-me}
   subscription-expiry-interval-ms: ${SUBSCRIPTION_EXPIRY_INTERVAL_MS:60000}
+  object-storage:
+    enabled: ${OBJECT_STORAGE_ENABLED:false}
+    endpoint: ${OBJECT_STORAGE_ENDPOINT:http://localhost:9000}
+    access-key: ${OBJECT_STORAGE_ACCESS_KEY:masaakis}
+    secret-key: ${OBJECT_STORAGE_SECRET_KEY:masaakis-dev-secret}
+    bucket: ${OBJECT_STORAGE_BUCKET:masaakis-assets}

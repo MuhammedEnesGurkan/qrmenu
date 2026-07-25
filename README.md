@@ -42,8 +42,17 @@ npm --prefix apps/web run dev
 MinIO gerektiğinde ayrıca `docker compose -f infra/compose.yaml up -d` ile
 başlatılabilir; Compose artık PostgreSQL içermez.
 
+Object storage kullanırken `OBJECT_STORAGE_ENABLED=true` ve S3-compatible
+endpoint/access/secret/bucket değişkenlerini tanımlayın. Production profili bunu,
+Secure cookie'yi, HTTPS public URL'yi, güçlü webhook secret'ını ve ayrı migration
+job'ını fail-fast olarak zorunlu tutar.
+
 - Web: http://localhost:3000/m/demo-kafe
 - API: http://localhost:8080/api/public/menus/demo-kafe
 - Health: http://localhost:8080/actuator/health
+- Readiness: http://localhost:8080/actuator/health/readiness
+
+Production container, CI ve backup/restore adımları `docs/deployment.md` ve
+`docs/operations.md` belgelerindedir.
 
 Demo verisi Flyway migration tarafından oluşturulur.

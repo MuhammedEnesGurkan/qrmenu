@@ -5,6 +5,7 @@ import com.masaakis.security.SecurityHashes;
 import com.masaakis.security.StaffPrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,9 +23,11 @@ public class AssetService {
     private static final int MAX_DIMENSION = 4096;
     private static final long MAX_PIXELS = 16_000_000L;
     private final JdbcClient jdbc;
+    private final S3AssetStore objectStore;
 
-    public AssetService(JdbcClient jdbc) {
+    public AssetService(JdbcClient jdbc, ObjectProvider<S3AssetStore> objectStore) {
         this.jdbc = jdbc;
+        this.objectStore = objectStore.getIfAvailable();
     }
 
     @Transactional
@@ -40,22 +43,36 @@ public class AssetService {
                 .query(UUID.class).optional();
         if (existing.isPresent()) return existing.get();
         UUID id = UUID.randomUUID();
+        String key = objectStore == null ? null : principal.tenantId() + "/" + digest + ".png";
+        if (objectStore != null) objectStore.put(key, encoded);
         jdbc.sql("""
-                insert into asset_object (id, tenant_id, content_type, byte_size, sha256, content)
-                values (:id, :tenantId, 'image/png', :size, :sha, :content)
+                insert into asset_object (id, tenant_id, content_type, byte_size, sha256, content, object_key)
+                values (:id, :tenantId, 'image/png', :size, :sha, :content, :key)
                 """).param("id", id).param("tenantId", principal.tenantId())
-                .param("size", encoded.length).param("sha", digest).param("content", encoded).update();
+                .param("size", encoded.length).param("sha", digest)
+                .param("content", objectStore == null ? encoded : null).param("key", key).update();
         return id;
     }
 
     @Transactional(readOnly = true)
     public AssetData get(UUID id) {
-        return jdbc.sql("select content_type, content, sha256 from asset_object where id=:id")
+        return jdbc.sql("select content_type, content, object_key, sha256 from asset_object where id=:id")
                 .param("id", id)
                 .query((rs, n) -> new AssetData(rs.getString("content_type"),
-                        rs.getBytes("content"), rs.getString("sha256")))
+                        rs.getBytes("content") != null
+                                ? rs.getBytes("content")
+                                : readObject(rs.getString("object_key")),
+                        rs.getString("sha256")))
                 .optional().orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND,
                         "ASSET_NOT_FOUND", "Görsel bulunamadı."));
+    }
+
+    private byte[] readObject(String key) {
+        if (objectStore == null) {
+            throw new AppException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "OBJECT_STORAGE_UNAVAILABLE", "Görsel deposu kullanılamıyor.");
+        }
+        return objectStore.get(key);
     }
 
     private byte[] reencode(MultipartFile file) {

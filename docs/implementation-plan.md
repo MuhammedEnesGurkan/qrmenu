@@ -106,26 +106,14 @@ API'ye verilmez; immutable DTO kullanılır.
 4. Şifreli backup/restore tatbikatı ve operasyon runbook'ları.
 5. Erişilebilirlik, 320–412 px ve hedef tarayıcı testlerini tamamla.
 
-## Ücretsiz QR menü boşlukları
+## Tamamlanma durumu
 
-Başlangıçta tüm fonksiyonlar eksikti. Aşama 1 iskeleti; public menü DTO'su,
-kalıcı slug, tenantlı şema, demo içerik ve responsive menüyü kapsar. Admin CRUD,
-görsel pipeline, gerçek QR dosyası, yayın workflow'u ve uçtan uca testler kalan
-işlerdir.
-
-## Eklenti sistemi boşlukları
-
-Addon planı, entitlement, abonelik, paket, provider adapter, webhook,
-`@RequiresAddon`, expiry scheduler ve mağaza arayüzünün tamamı başlangıçta
-eksiktir. Bunlar Aşama 3'te, ücretli endpoint yazılmadan önce tamamlanacaktır.
-
-## Yetki ve güvenlik bulguları
-
-Başlangıçta authentication, authorization, tenant izolasyonu, CSRF, CORS,
-güvenlik header'ları, rate-limit ve audit yoktur. Public allow-list ve güvenlik
-header'ları Aşama 1'de; personel cookie oturumu, permission matrisi ve object
-scope Aşama 2'de devreye alınır. Admin yazma endpoint'leri gerçek auth gelene
-kadar production profilinde kapalı tutulmalıdır.
+Aşama 1–8 kapsamındaki ücretsiz menü, kimlik/yetki, eklenti, masadan sipariş,
+mutfak/self-servis, Katalog Pro, ilave eklentiler ve production hazırlığı
+uygulandı. Admin CRUD, güvenli görsel pipeline, QR üretimi, yayın workflow'u,
+entitlement/webhook yaşam döngüsü, branch object scope, rate-limit ve audit
+kontrolleri çalışır durumdadır. Hedef platformda secret girme, container image
+yayınlama ve periyodik restore tatbikatı operasyon sorumluluğunda kalır.
 
 ## Responsive gereksinimler
 
@@ -143,3 +131,12 @@ kadar production profilinde kapalı tutulmalıdır.
 - Web: 1 Vitest testi geçti, TypeScript kontrolü ve Next.js production build
   başarılı. Production ve toplam npm audit sonucu 0 açık.
 - Compose config yalnız MinIO servisi içeriyor; yerel PostgreSQL başlatılmadı.
+- 25 Temmuz 2026 son doğrulaması: Flyway şeması Supabase üzerinde V11; API
+  testleri 7 çalıştırma, 0 hata, Docker daemon kapalı olduğu için 1 kontrollü
+  Testcontainers skip. Docker bulunan CI bu migration/RLS testini çalıştırır.
+- Web son doğrulaması: TypeScript başarılı, Vitest 1/1, Next production build,
+  npm audit 0 açık ve 320–412 px + masaüstü Chromium/WebKit/Firefox Playwright
+  matrisi 6/6 başarılı.
+- Geliştirme/production Compose config, backup/restore PowerShell sözdizimi ve
+  API production JAR üretimi başarılı. Gerçek şifreli restore tatbikatı hedef
+  ortamın `age`, PostgreSQL client ve izole restore veritabanıyla yürütülür.

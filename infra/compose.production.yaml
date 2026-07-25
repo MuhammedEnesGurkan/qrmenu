@@ -1,0 +1,41 @@
+name: masaakis-production
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DATABASE_URL: ${DATABASE_URL:?required}
+      DATABASE_USERNAME: ${DATABASE_USERNAME:?required}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?required}
+      FLYWAY_ENABLED: "false"
+      SESSION_COOKIE_SECURE: "true"
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?required}
+      WEB_ORIGIN: ${WEB_ORIGIN:?required}
+      BILLING_WEBHOOK_SECRET: ${BILLING_WEBHOOK_SECRET:?required}
+      OBJECT_STORAGE_ENABLED: "true"
+      OBJECT_STORAGE_ENDPOINT: ${OBJECT_STORAGE_ENDPOINT:?required}
+      OBJECT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY:?required}
+      OBJECT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY:?required}
+      OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET:-masaakis-assets}
+    restart: unless-stopped
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    environment:
+      API_URL: http://api:8080
+    ports: ["3000:3000"]
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped

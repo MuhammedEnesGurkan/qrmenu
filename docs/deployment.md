@@ -16,3 +16,8 @@ başlangıcından önce direct connection kullanan tek kontrollü job ile uygula
 ve API'de `FLYWAY_ENABLED=false` yapılır. Hikari havuzu instance başına düşük
 tutulur; toplam bağlantı sayısı Supabase proje limitine göre hesaplanır.
 Readiness veritabanını, liveness yalnız process sağlığını ölçer.
+
+`apps/api/Dockerfile` ve `apps/web/Dockerfile` non-root, read-only uyumlu
+image üretir. `infra/compose.production.yaml` capability'leri düşürür ve secret
+değerlerini image'a koymaz. Ayrıntılı rollout/rollback ve alarm akışı
+`docs/operations.md` içindedir.

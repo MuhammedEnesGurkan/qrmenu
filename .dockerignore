@@ -1,0 +1,11 @@
+.git
+.github
+.env
+**/.env*
+**/node_modules
+**/.next
+**/target
+.m2-cache
+*.log
+playwright-report
+test-results
