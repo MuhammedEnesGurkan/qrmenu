@@ -55,4 +55,7 @@ job'ını fail-fast olarak zorunlu tutar.
 Production container, CI ve backup/restore adımları `docs/deployment.md` ve
 `docs/operations.md` belgelerindedir.
 
+Web, API, Supabase, object storage ve webhook arasındaki tüm istek/bağlantı
+akışı `docs/baglanti-ve-istek-akisi.md` belgesinde anlatılır.
+
 Demo verisi Flyway migration tarafından oluşturulur.

@@ -21,7 +21,13 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   async rewrites() {
     const apiUrl = process.env.API_URL ?? "http://localhost:8080";
-    return [{ source: "/backend/:path*", destination: `${apiUrl}/:path*` }];
+    return [
+      { source: "/backend/:path*", destination: `${apiUrl}/:path*` },
+      {
+        source: "/api/public/assets/:path*",
+        destination: `${apiUrl}/api/public/assets/:path*`,
+      },
+    ];
   },
   async headers() {
     return [

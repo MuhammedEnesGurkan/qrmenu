@@ -325,6 +325,17 @@ sonuçları ve varsa kalan işler bu dosyaya eklenecektir.
 - Gerçek Supabase smoke testinde şema V11, readiness/liveness `UP`, request-id,
   `no-store` ve QR exchange rate-limit'inin 31. istekte 429 vermesi doğrulandı.
 
+## 25 Temmuz 2026 — Bağlantı ve istek akışı belgesi
+
+- Tarayıcı → Next.js → Spring Boot → Supabase/object storage bağlantıları tek
+  sistem haritasında belgelendi.
+- Public menü SSR, aynı-origin `/backend` proxy, yönetici cookie/CSRF, masa QR
+  exchange, sipariş, SSE, görsel ve webhook akışları adım adım kaydedildi.
+- Kullanılan teknoloji zinciri, ortam değişkenleri, endpoint grupları ve Spring
+  filtre/transaction sırası `docs/baglanti-ve-istek-akisi.md` dosyasına eklendi.
+- Saklanan `/api/public/assets/...` görsel yollarının Next.js üzerinden Spring
+  API'ye ulaşması için eksik public asset rewrite'ı eklendi.
+
 ## Kayıt kuralı
 
 Her yeni aşamada bu belgeye aşağıdakiler eklenecektir:
