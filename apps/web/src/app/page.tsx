@@ -22,8 +22,11 @@ export default function HomePage() {
         >
           Demo menüyü aç
         </Link>
+        <div className="mt-4 flex flex-wrap gap-4 text-sm font-bold text-[#176b52]">
+          <Link href="/admin/giris" className="underline underline-offset-4">Yönetici girişi</Link>
+          <Link href="/admin/kayit" className="underline underline-offset-4">Ücretsiz menü oluştur</Link>
+        </div>
       </section>
     </main>
   );
 }
-

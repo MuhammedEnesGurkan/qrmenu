@@ -123,14 +123,37 @@ sonuçları ve varsa kalan işler bu dosyaya eklenecektir.
 
 ## Henüz tamamlanmayan ana modüller
 
-- Admin kategori, ürün ve fiyat CRUD ekranları
-- Menü yayınlama iş akışı
-- Ürün görsel yükleme
-- QR üretme ve indirme
-- Personel, rol ve izin yönetimi
 - Eklenti ve abonelik sistemi
 - Masadan sipariş, garson ve mutfak ekranları
 - Raporlama, çoklu dil ve production deployment
+
+## 25 Temmuz 2026 — Admin katalog, görsel, QR ve personel
+
+- `/admin/kayit`, `/admin/giris` ve oturum kontrollü `/admin` sayfaları
+  tamamlandı; ana sayfaya yönetici bağlantıları eklendi.
+- Tenant ve şube kapsamlı kategori oluşturma/düzenleme/gizleme/arşivleme
+  akışları eklendi.
+- Ürün oluşturma, bilgi düzenleme, aktiflik, mevcut/tükendi, arşivleme ve
+  optimistic version kontrollü fiyat güncelleme akışları tamamlandı.
+- Boş menünün yayınlanmasını engelleyen yayınla/yayından kaldır iş akışı ve
+  kalıcı public menü bağlantısı admin paneline bağlandı.
+- Genel menü adresini kullanan 768×768 PNG QR üretimi ve indirmesi eklendi;
+  QR içinde geçici token veya tenant kimliği bulunmuyor.
+- Görseller dosya uzantısı/MIME beyanına güvenmeden decode edilip boyut ve
+  piksel limitlerinden geçiriliyor, metadata’dan arındırılmış PNG olarak
+  yeniden kodlanıyor ve SHA-256 ile tekilleştiriliyor.
+- Asset, katalog yayın zamanı ve ürün version alanları Supabase Flyway V5 ile
+  uygulandı; asset tablosunda RLS ve doğrudan istemci erişim engeli etkin.
+- Personel listeleme, oluşturma, rol atama ve devre dışı bırakma API/paneli
+  eklendi; yönetici kendi hesabını kapatamıyor ve rol yükseltme sınırları
+  backend tarafından denetleniyor.
+- Next.js aynı-origin backend rewrite ile cookie oturumlarını production’a
+  uygun biçimde taşıyor; CSRF header istemci yardımcı katmanında merkezi.
+- API testleri 5/5, TypeScript kontrolü, Vitest 1/1 ve Next.js production build
+  başarılı.
+- Supabase smoke testlerinde kategori → ürün → fiyat → yayın → QR zinciri ile
+  OWNER’ın WAITER oluşturması, WAITER’ın okuması ve katalog yazmasının 403
+  ile engellenmesi doğrulandı.
 
 ## Kayıt kuralı
 

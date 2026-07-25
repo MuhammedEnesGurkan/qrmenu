@@ -1,4 +1,8 @@
 spring:
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   config:
     import: optional:file:.env[.properties]
   application:
@@ -55,3 +59,4 @@ springdoc:
     path: /swagger-ui.html
 app:
   web-origin: ${WEB_ORIGIN:http://localhost:3000}
+  public-base-url: ${PUBLIC_BASE_URL:http://localhost:3000}

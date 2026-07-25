@@ -18,6 +18,10 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
+  async rewrites() {
+    const apiUrl = process.env.API_URL ?? "http://localhost:8080";
+    return [{ source: "/backend/:path*", destination: `${apiUrl}/:path*` }];
+  },
   async headers() {
     return [
       { source: "/(.*)", headers: securityHeaders },
@@ -30,4 +34,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-
