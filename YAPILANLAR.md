@@ -210,6 +210,29 @@ sonuçları ve varsa kalan işler bu dosyaya eklenecektir.
   OWNER’ın WAITER oluşturması, WAITER’ın okuması ve katalog yazmasının 403
   ile engellenmesi doğrulandı.
 
++## 25 Temmuz 2026 — Mutfak istasyonları ve self-servis
+
+- Supabase Flyway V8 ile şube public hazır ekranı slug’ı, mutfak istasyonları,
+  kategori-istasyon eşlemesi, sipariş kalemi mutfak durumu ve açık teslim
+  numarası tekillik kuralı eklendi.
+- SELF_SERVICE siparişleri için sunucuda PII içermeyen teslim numarası üretiliyor;
+  müşteri ekranında servis biçimi seçimi ve teslim numarası gösterimi tamamlandı.
+- Kabul edilen siparişlerin kategoriye göre etkin istasyona atomik yönlendirilmesi
+  sağlandı; eşleşmeyen kategori varsa kabul transaction’ı güvenli biçimde geri
+  alınıyor.
+- İstasyon kuyruğunda QUEUED → PREPARING → DONE akışı ve tüm kalemler
+  tamamlandığında masaya serviste READY, self-serviste READY_FOR_PICKUP kuralı
+  uygulandı.
+- `/admin/mutfak` tablet ekranı ve PII göstermeyen, dört saniyede yenilenen
+  `/hazir/{subeSlug}` büyük hazır numarası ekranı eklendi.
+- Eklenti süresi dolduğunda yeni ücretli yazmalar kapanırken sipariş ve çağrı
+  geçmişinin salt okunur erişimi korunacak şekilde read guard’ları düzeltildi.
+- API testleri 5/5, web Vitest 1/1, TypeScript ve Next.js production build
+  başarılı. V8 Supabase’e uygulandı.
+- Gerçek Supabase smoke testinde QR exchange 303, sunucu fiyatlandırması, benzersiz
+  teslim numarası, istasyon yönlendirmesi, PREPARING/DONE ve public hazır ekranında
+  READY_FOR_PICKUP görünümü birlikte doğrulandı.
+
 ## Kayıt kuralı
 
 Her yeni aşamada bu belgeye aşağıdakiler eklenecektir:

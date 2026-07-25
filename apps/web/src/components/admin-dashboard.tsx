@@ -46,6 +46,9 @@ export function AdminDashboard() {
       <div className="flex flex-wrap gap-2">
         <a href="/admin/masalar" className="inline-flex min-h-11 items-center rounded-xl border border-white/25 px-4 font-bold">Masalar</a>
         <a href="/admin/siparisler" className="inline-flex min-h-11 items-center rounded-xl border border-white/25 px-4 font-bold">Siparişler</a>
+        <a href="/admin/mutfak" className="inline-flex min-h-11 items-center rounded-xl border border-white/25 px-4 font-bold">Mutfak</a>
+        <a href="/admin/katalog-pro" className="inline-flex min-h-11 items-center rounded-xl border border-white/25 px-4 font-bold">Katalog Pro</a>
+        <a href="/admin/ayarlar" className="inline-flex min-h-11 items-center rounded-xl border border-white/25 px-4 font-bold">Eklentiler</a>
         <a href={`/m/${catalog.menu.slug}`} target="_blank" className="inline-flex min-h-11 items-center rounded-xl border border-white/25 px-4 font-bold">Menüyü aç</a>
         <a href="/backend/api/admin/catalog/qr.png" className="inline-flex min-h-11 items-center rounded-xl bg-white px-4 font-bold text-[#17201b]">QR indir</a>
         <button onClick={() => action(() => api("/api/auth/logout", json("POST")), "Çıkış yapıldı.").then(() => router.replace("/admin/giris"))} className="min-h-11 rounded-xl border border-white/25 px-4 font-bold">Çıkış</button>
