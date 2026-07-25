@@ -4,6 +4,7 @@ import com.masaakis.menu.application.MenuNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -21,9 +22,18 @@ public class ApiExceptionHandler {
         return response(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "İstek doğrulanamadı.");
     }
 
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    ResponseEntity<ApiError> invalidBody(MethodArgumentNotValidException ignored) {
+        return response(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "İstek doğrulanamadı.");
+    }
+
+    @ExceptionHandler(AppException.class)
+    ResponseEntity<ApiError> application(AppException exception) {
+        return response(exception.status(), exception.code(), exception.getMessage());
+    }
+
     private ResponseEntity<ApiError> response(HttpStatus status, String code, String message) {
         return ResponseEntity.status(status)
                 .body(new ApiError(Instant.now(), status.value(), code, message));
     }
 }
-

@@ -95,11 +95,34 @@ sonuçları ve varsa kalan işler bu dosyaya eklenecektir.
 - Supabase PostgreSQL bağlantısı ve Flyway migration'ları
 - Responsive Next.js menü arayüzü
 - Temel API güvenliği ve health kontrolü
+- İşletme sahibi kayıt/giriş/çıkış ve oturum sorgulama
+- Argon2id parola, hashlenmiş sunucu oturumu, CSRF ve giriş rate-limit
+- Tenant/şube bağlı üyelik, personel rolleri ve audit kaydı
+
+## 25 Temmuz 2026 — Kimlik, oturum ve yetkilendirme
+
+- İşletme kaydının tenant, merkez şube, yayınlanmamış ilk menü ve OWNER
+  üyeliğini tek transaction içinde oluşturması sağlandı.
+- E-posta/parola girişi, mevcut oturumu sorgulama ve güvenli çıkış endpoint’leri
+  eklendi.
+- Parolalar Argon2id ile; oturum ve CSRF değerleri yalnız SHA-256 hash olarak
+  veritabanında saklanacak şekilde tasarlandı.
+- `HttpOnly` personel oturum cookie’si, ayrı CSRF cookie/header doğrulaması,
+  SameSite ve production Secure cookie seçenekleri eklendi.
+- Giriş denemelerine IP ve e-posta bazlı bellek içi rate-limit uygulandı.
+- OWNER, BRANCH_MANAGER, MENU_EDITOR, WAITER, KITCHEN_STAFF ve VIEWER
+  rollerinin en az yetki izin setleri tanımlandı.
+- Kimlik tabloları, üyelik, oturum ve audit log için Supabase Flyway V4
+  migration’ı uygulandı; RLS etkinleştirildi ve istemci rollerinin doğrudan
+  tablo erişimi kaldırıldı.
+- Spring Security stateless zinciri, CORS credentials, özel oturum filtresi ve
+  CSRF filtresiyle tamamlandı; filtrelerin servlet zincirine çift kaydı
+  engellendi.
+- API testleri 5/5 geçti; Supabase üzerinde kayıt → `/me` → CSRF korumalı
+  çıkış smoke senaryosu başarıyla doğrulandı.
 
 ## Henüz tamamlanmayan ana modüller
 
-- Admin giriş, kayıt ve oturum yönetimi
-- İşletme ve şube kurulum akışı
 - Admin kategori, ürün ve fiyat CRUD ekranları
 - Menü yayınlama iş akışı
 - Ürün görsel yükleme

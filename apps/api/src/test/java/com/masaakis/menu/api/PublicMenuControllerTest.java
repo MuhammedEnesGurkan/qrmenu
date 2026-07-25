@@ -1,5 +1,6 @@
 package com.masaakis.menu.api;
 
+import com.masaakis.identity.application.IdentityService;
 import com.masaakis.menu.application.PublicMenuResponse;
 import com.masaakis.menu.application.PublicMenuService;
 import com.masaakis.security.ApiExceptionHandler;
@@ -30,6 +31,9 @@ class PublicMenuControllerTest {
     @MockitoBean
     private PublicMenuService publicMenuService;
 
+    @MockitoBean
+    private IdentityService identityService;
+
     @Test
     void publishedMenuIsPublicAndDoesNotExposeTenantId() throws Exception {
         var product = new PublicMenuResponse.ProductResponse(
@@ -54,4 +58,3 @@ class PublicMenuControllerTest {
                 .andExpect(status().isBadRequest());
     }
 }
-
