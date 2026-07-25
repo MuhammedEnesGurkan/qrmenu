@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const isDevelopment = process.env.NODE_ENV === "development";
+
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "no-referrer" },
@@ -11,7 +13,7 @@ const securityHeaders = [
   {
     key: "Content-Security-Policy",
     value:
-      `default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'${process.env.NODE_ENV === "development" ? " http://localhost:8080" : ""}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests`,
+      `default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""}; connect-src 'self'${isDevelopment ? " http://localhost:8080" : ""}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'${isDevelopment ? "" : "; upgrade-insecure-requests"}`,
   },
 ];
 
@@ -19,6 +21,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   reactStrictMode: true,
+  allowedDevOrigins: ["localhost", "127.0.0.1", "10.2.0.2"],
   async rewrites() {
     const apiUrl = process.env.API_URL ?? "http://localhost:8080";
     return [

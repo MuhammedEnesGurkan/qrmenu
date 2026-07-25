@@ -336,6 +336,19 @@ sonuçları ve varsa kalan işler bu dosyaya eklenecektir.
 - Saklanan `/api/public/assets/...` görsel yollarının Next.js üzerinden Spring
   API'ye ulaşması için eksik public asset rewrite'ı eklendi.
 
+## 25 Temmuz 2026 — Kayıt ekranı CSP düzeltmesi
+
+- Next.js App Router'ın inline hydration scriptlerini engelleyen CSP kuralı
+  düzeltildi; kayıt ve giriş formlarının React `onSubmit` akışı yeniden çalışır.
+- `upgrade-insecure-requests` yalnız production'a alındı; localhost geliştirme
+  ortamındaki HTTP scriptleri artık yanlışlıkla HTTPS'e yükseltilmez.
+- Next.js geliştirme sunucusuna `localhost`, `127.0.0.1` ve yerel ağ adresi
+  (`10.2.0.2`) için `allowedDevOrigins` tanımlandı; HMR/client kaynaklarının
+  cross-origin engeline takılması önlendi.
+- Playwright'a veritabanına test hesabı yazmadan kayıt formunun hydrate olup
+  `POST /backend/api/auth/register` göndermesini doğrulayan regresyon testi
+  eklendi.
+
 ## Kayıt kuralı
 
 Her yeni aşamada bu belgeye aşağıdakiler eklenecektir:
