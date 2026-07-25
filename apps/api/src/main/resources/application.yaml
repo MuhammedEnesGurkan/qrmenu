@@ -1,0 +1,57 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  application:
+    name: masaakis-api
+  datasource:
+    # Supabase's JDBC URL is intentionally required: never silently start against
+    # or fall back to a database on the developer machine.
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DATABASE_POOL_MAX_SIZE:5}
+      minimum-idle: ${DATABASE_POOL_MIN_IDLE:0}
+      connection-timeout: ${DATABASE_CONNECTION_TIMEOUT_MS:10000}
+      validation-timeout: ${DATABASE_VALIDATION_TIMEOUT_MS:5000}
+      max-lifetime: ${DATABASE_MAX_LIFETIME_MS:1800000}
+      keepalive-time: ${DATABASE_KEEPALIVE_TIME_MS:120000}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: ${FLYWAY_ENABLED:true}
+    locations: classpath:db/migration
+    connect-retries: ${FLYWAY_CONNECT_RETRIES:5}
+    baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:true}
+    baseline-version: ${FLYWAY_BASELINE_VERSION:0}
+  mvc:
+    problemdetails:
+      enabled: false
+server:
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        secure: ${SESSION_COOKIE_SECURE:false}
+        same-site: lax
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+app:
+  web-origin: ${WEB_ORIGIN:http://localhost:3000}

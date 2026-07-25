@@ -1,0 +1,17 @@
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+.env
+.env.local
+target/
+node_modules/
+.m2-cache/
+.npm-cache/
+.next/
+coverage/
+*.tsbuildinfo
+playwright-report/
+test-results/
+*.log
+infra/data/
