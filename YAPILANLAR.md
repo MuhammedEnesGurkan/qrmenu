@@ -233,6 +233,32 @@ sonuçları ve varsa kalan işler bu dosyaya eklenecektir.
   teslim numarası, istasyon yönlendirmesi, PREPARING/DONE ve public hazır ekranında
   READY_FOR_PICKUP görünümü birlikte doğrulandı.
 
++## 25 Temmuz 2026 — Katalog Pro içe aktarma ve toplu fiyat
+
+- Supabase Flyway V9 ile hash-idempotent import job/satırları ve
+  PriceChangeBatch/PriceChangeItem snapshot tabloları eklendi; RLS ve doğrudan
+  istemci erişim engeli etkinleştirildi.
+- 5 MB ve 5000 satır limitli CSV/XLSX önizleme → onay akışı tamamlandı; hatalı
+  satırlar katalog transaction’ına girmiyor ve aynı dosya hash’i aynı işi dönüyor.
+- Dosya biçimi istemci MIME beyanına güvenmeden içerikten doğrulanıyor; UTF-8
+  hataları, XLSX zip bombası, aşırı entry, dış bağlantı, makro ve formül hücreleri
+  reddediliyor.
+- Apache POI 5.5.1 ile gerçek XLSX okuma ve formül reddi otomatik testi eklendi.
+- CSV dışa aktarmada =, +, - ve @ ile başlayan hücrelere spreadsheet formula
+  injection koruması uygulandı.
+- SET, ADD ve PERCENT toplu fiyat önizleme/onay akışı eklendi; optimistic version
+  kontrolü önizleme sonrası değişiklikleri engelliyor.
+- Geri alma yalnız ürün hâlâ batch’in uyguladığı fiyat ve version’daysa eski
+  değeri yüklüyor; sonraki manuel değişiklikleri ezmeden CONFLICT ve
+  PARTIAL_ROLLBACK raporluyor.
+- `/admin/katalog-pro` yönetim ekranı dosya önizleme/onay, güvenli export,
+  toplu fiyat ve çakışma güvenli rollback işlevleriyle tamamlandı.
+- API testleri 6/6, web Vitest 1/1, TypeScript ve Next.js production build
+  başarılı. V9 Supabase’e uygulandı.
+- Gerçek Supabase smoke testinde CSV preview/commit, hash idempotency, yüzde fiyat
+  commit’i, sonradan değişmiş fiyatta PARTIAL_ROLLBACK ve export formula escaping
+  birlikte doğrulandı.
+
 ## Kayıt kuralı
 
 Her yeni aşamada bu belgeye aşağıdakiler eklenecektir:

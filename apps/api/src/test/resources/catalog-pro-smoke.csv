@@ -1,0 +1,2 @@
+sku,category,name,description,price,currency,active,available,allergens
+FORMULA-1,İçe Aktarım,=cmd,Formül enjeksiyon testi,42.50,TRY,true,true,
