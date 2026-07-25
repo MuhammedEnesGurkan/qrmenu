@@ -75,6 +75,18 @@ sonuçları ve varsa kalan işler bu dosyaya eklenecektir.
 - Public API sonucu: `Demo Kafe`, 2 kategori.
 - Web uçtan uca kontrolü: HTTP 200 ve Demo Kafe içeriği doğrulandı.
 
+## 25 Temmuz 2026 — Git ve GitHub yayını
+
+- Yerel proje `main` branch'iyle Git deposuna dönüştürüldü.
+- GitHub remote'u `MuhammedEnesGurkan/qrmenu` olarak tanımlandı.
+- Uzak reponun boş olduğu push öncesinde doğrulandı.
+- `.env`, `.env.local`, loglar, Maven/npm cache'leri, build çıktıları ve
+  TypeScript build cache dosyaları Git dışında bırakıldı.
+- Staged içerik gerçek Supabase proje referansı, parola ve private key
+  desenlerine karşı tarandı; gizli bilgi bulunmadı.
+- Proje kaynakları, migration'lar ve belgeler doğrudan `main` branch'ine
+  pushlandı.
+
 ## Şu anda çalışan kapsam
 
 - Public QR menü ana sayfası
