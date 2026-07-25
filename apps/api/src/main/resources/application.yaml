@@ -60,3 +60,5 @@ springdoc:
 app:
   web-origin: ${WEB_ORIGIN:http://localhost:3000}
   public-base-url: ${PUBLIC_BASE_URL:http://localhost:3000}
+  billing-webhook-secret: ${BILLING_WEBHOOK_SECRET:local-dev-change-me}
+  subscription-expiry-interval-ms: ${SUBSCRIPTION_EXPIRY_INTERVAL_MS:60000}

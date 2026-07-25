@@ -2,13 +2,14 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api, AuthUser, Catalog, Category, json, Product, Staff } from "@/lib/admin-api";
+import { AddonPlan, api, AuthUser, Catalog, Category, json, Product, Staff } from "@/lib/admin-api";
 
 export function AdminDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [staff, setStaff] = useState<Staff[]>([]);
+  const [addons, setAddons] = useState<AddonPlan[]>([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -16,9 +17,10 @@ export function AdminDashboard() {
   const refresh = useCallback(async () => {
     try {
       const me = await api<AuthUser>("/api/auth/me");
-      const [data, people] = await Promise.all([api<Catalog>("/api/admin/catalog"),
-        me.permissions.includes("membership/manage") ? api<Staff[]>("/api/admin/staff") : Promise.resolve([])]);
-      setUser(me); setCatalog(data); setStaff(people);
+      const [data, people, plans] = await Promise.all([api<Catalog>("/api/admin/catalog"),
+        me.permissions.includes("membership/manage") ? api<Staff[]>("/api/admin/staff") : Promise.resolve([]),
+        api<AddonPlan[]>("/api/admin/addons")]);
+      setUser(me); setCatalog(data); setStaff(people); setAddons(plans);
     } catch (caught) {
       if ((caught as Error & { status?: number }).status === 401 || (caught as Error & { status?: number }).status === 403) router.replace("/admin/giris");
       else setError(caught instanceof Error ? caught.message : "Panel yüklenemedi.");
@@ -58,6 +60,9 @@ export function AdminDashboard() {
         {user.permissions.includes("membership/manage") && <StaffCard staff={staff} currentUserId={user.userId} disabled={busy}
           onCreate={(body)=>action(()=>api("/api/admin/staff",json("POST",body)),"Personel eklendi.")}
           onUpdate={(person,body)=>action(()=>api(`/api/admin/staff/${person.id}`,json("PATCH",body)),"Personel güncellendi.")} />}
+        {user.role==="OWNER" && <AddonStore plans={addons} disabled={busy}
+          onTrial={(plan)=>action(()=>api(`/api/admin/addons/${plan.code}/trial`,json("POST")),`${plan.name} denemesi başladı.`)}
+          onCancel={(plan)=>action(()=>api(`/api/admin/addons/${plan.code}/cancel`,json("POST")),`${plan.name} dönem sonunda kapanacak.`)} />}
       </div>
       <div className="grid content-start gap-4">
         {catalog.categories.length === 0 && <Empty text="Henüz kategori yok. İlk kategorini soldaki formdan ekle." />}
@@ -92,6 +97,13 @@ function MenuCard({ catalog, disabled, onSave, onPublish }: { catalog:Catalog; d
 function NewCategory({ disabled, onCreate }: { disabled:boolean; onCreate:(v:unknown)=>void }) {
   return <Card><h2 className="text-xl font-black">Kategori ekle</h2><form className="mt-4 grid gap-3" onSubmit={(e)=>{e.preventDefault();const d=new FormData(e.currentTarget);onCreate({name:d.get("name"),sortOrder:Number(d.get("sortOrder"))});e.currentTarget.reset();}}>
     <Input label="Kategori adı" name="name"/><Input label="Sıra" name="sortOrder" type="number" defaultValue={0}/><button disabled={disabled} className="min-h-11 rounded-xl bg-[#176b52] font-bold text-white">Ekle</button></form></Card>;
+}
+
+function AddonStore({plans,disabled,onTrial,onCancel}:{plans:AddonPlan[];disabled:boolean;onTrial:(p:AddonPlan)=>void;onCancel:(p:AddonPlan)=>void}) {
+  return <Card><h2 className="text-xl font-black">Eklenti mağazası</h2><p className="mt-1 text-sm text-[#68736b]">Fiyat ve durumlar sunucudan gelir. Deneme bitince geçmiş veri korunur, yeni ücretli yazmalar kapanır.</p>
+    <div className="mt-4 grid gap-3">{plans.map(plan=><article key={plan.code} className="rounded-2xl border bg-white p-4"><div className="flex items-start justify-between gap-3"><div><h3 className="font-black">{plan.name}</h3><p className="mt-1 text-sm text-[#68736b]">{plan.description}</p></div><span className="rounded-full bg-[#f6f2e9] px-2 py-1 text-xs font-bold">{plan.status}</span></div><p className="mt-3 font-black">{new Intl.NumberFormat("tr-TR",{style:"currency",currency:plan.currency}).format(plan.monthlyPrice)} / ay</p>
+      {plan.status==="INACTIVE"?<button disabled={disabled} onClick={()=>onTrial(plan)} className="mt-3 min-h-10 rounded-lg bg-[#176b52] px-3 text-sm font-bold text-white">{plan.trialDays} gün dene</button>:(["TRIAL","ACTIVE"].includes(plan.status)&&!plan.cancelAtPeriodEnd?<button disabled={disabled} onClick={()=>onCancel(plan)} className="mt-3 min-h-10 rounded-lg border px-3 text-sm font-bold">Dönem sonunda iptal</button>:null)}</article>)}</div>
+  </Card>;
 }
 
 const staffRoles = ["BRANCH_MANAGER","MENU_EDITOR","WAITER","KITCHEN_STAFF","VIEWER"] as const;

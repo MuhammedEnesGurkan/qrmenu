@@ -37,6 +37,7 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/public/menus/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/public/assets/**").permitAll()
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/webhooks/subscriptions").permitAll()
                         .requestMatchers("/api/auth/me", "/api/auth/logout", "/api/admin/**").authenticated()
                         .requestMatchers("/actuator/health", "/v3/api-docs/**", "/swagger-ui/**",
                                 "/swagger-ui.html", "/error").permitAll()

@@ -123,9 +123,32 @@ sonuçları ve varsa kalan işler bu dosyaya eklenecektir.
 
 ## Henüz tamamlanmayan ana modüller
 
-- Eklenti ve abonelik sistemi
 - Masadan sipariş, garson ve mutfak ekranları
 - Raporlama, çoklu dil ve production deployment
+
+## 25 Temmuz 2026 — Eklenti ve abonelik çekirdeği
+
+- TABLE_ORDERING, SELF_SERVICE, CATALOG_PRO, MULTILINGUAL, ADVANCED_REPORTS,
+  MULTI_BRANCH, BRANDING ve KITCHEN_STATIONS planları veritabanı fiyatlarıyla
+  seed edildi.
+- AddonPlan, AddonSubscription, TenantAddon ve idempotent BillingEvent
+  tabloları Supabase Flyway V6 ile uygulandı; tümünde RLS ve istemci rol
+  erişim engeli etkin.
+- INACTIVE, TRIAL, ACTIVE, PAST_DUE, CANCELLED, EXPIRED ve SUSPENDED yaşam
+  döngüsü; deneme süresi, dönem sonu iptal ve optimistic version alanları
+  eklendi.
+- Backend’de süre ve durum denetleyen merkezi entitlement servisi ile
+  `@RequiresAddon` AOP guard’ı hazırlandı.
+- Süresi dolan trial/abonelikleri EXPIRED yapıp yalnız yeni ücretli yazmaları
+  kapatan scheduler eklendi; tenant verileri silinmiyor.
+- Mock provider referansı, raw-body HMAC-SHA256 doğrulaması ve provider/event
+  kimliğine göre idempotent webhook işleme tamamlandı.
+- Eklenti mağazası owner paneline bağlandı; plan fiyatı/durumu, trial başlatma
+  ve dönem sonunda iptal seçenekleri sunuluyor.
+- Spring Boot 4.1’in resmi `spring-boot-starter-aspectj` modülü kullanıldı.
+- API testleri 5/5 geçti. Supabase smoke testinde sekiz plan, trial, dönem sonu
+  iptal, imzalı ACTIVE webhook’u ve aynı event’in ikinci kez işlenmemesi
+  doğrulandı.
 
 ## 25 Temmuz 2026 — Admin katalog, görsel, QR ve personel
 

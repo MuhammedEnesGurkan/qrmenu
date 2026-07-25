@@ -7,6 +7,7 @@ export type AuthUser = {
   permissions: string[];
 };
 export type Staff = { id:string; email:string; displayName:string; role:string; active:boolean; branchId:string };
+export type AddonPlan = { code:string; name:string; description:string; monthlyPrice:number; currency:string; trialDays:number; status:string; trialEndsAt:string|null; currentPeriodEndsAt:string|null; cancelAtPeriodEnd:boolean };
 
 export type Product = {
   id: string; categoryId: string; sku: string | null; name: string;
