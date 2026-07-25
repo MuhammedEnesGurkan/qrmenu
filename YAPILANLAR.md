@@ -123,8 +123,40 @@ sonuçları ve varsa kalan işler bu dosyaya eklenecektir.
 
 ## Henüz tamamlanmayan ana modüller
 
-- Masadan sipariş, garson ve mutfak ekranları
+- Mutfak istasyonları ve self-servis ekranları
 - Raporlama, çoklu dil ve production deployment
+
+## 25 Temmuz 2026 — Masa QR, sipariş ve garson akışı
+
+- Alan ve masa yönetimi, kapasite, 256-bit rastgele QR tokenı ve yalnız
+  SHA-256 hash saklama modeli Supabase Flyway V7 ile uygulandı.
+- QR rotasyonu tek transaction’da önceki tokenı kapatıyor; yeni QR’ın raw
+  değeri yalnız oluşturma/yenileme cevabında ve indirilebilir PNG içinde bir
+  kez gösteriliyor.
+- `/q/{token}` akışı tokenı sunucuda değiştirip HttpOnly, kısa ömürlü
+  `MASA_TABLE` ve ayrı CSRF cookie’si oluşturuyor; 303 ile tokensız
+  `/siparis` adresine yönlendiriyor.
+- Token exchange yanıtına `no-store` ve `no-referrer` uygulandı; eski QR’ın
+  rotasyon sonrasında 404 olması doğrulandı.
+- Müşteri menüsü, erişilebilir adet kontrolleri, sepet, sunucu fiyatlı sipariş
+  ve garson çağırma ekranları tamamlandı.
+- Sipariş fiyatı ve ürün adı sipariş anında aktif katalogdan sunucuda
+  snapshot’lanıyor; istemci toplamına güvenilmiyor.
+- Idempotency-Key ile aynı siparişin tekrar oluşturulması engellendi; sipariş
+  ve ürün satırları tenant/table-session kapsamıyla korunuyor.
+- SUBMITTED → ACCEPTED → PREPARING → READY → SERVING → DELIVERED allow-list
+  durum makinesi, rol izni ve optimistic version kontrolü eklendi.
+- Garson çağrılarında PENDING → ACKNOWLEDGED → RESOLVED akışı ve sipariş/çağrı
+  outbox event kayıtları eklendi.
+- `/admin/masalar` ve `/admin/siparisler` operasyon ekranları eklendi; eklenti
+  süresi dolduğunda geçmiş okuma korunurken yeni ücretli yazmalar guard
+  tarafından kapanıyor.
+- Müşteri ekranında tutarın tahmini olduğu ve ödeme/POS/mali belge olmadığı
+  açıkça belirtildi.
+- API testleri 5/5, TypeScript, Vitest 1/1 ve Next.js production build
+  başarılı. Supabase smoke testinde exchange 303, server-side toplam,
+  idempotency, ACCEPTED geçişi, garson çağrısı, rotasyon ve eski token iptali
+  birlikte doğrulandı.
 
 ## 25 Temmuz 2026 — Eklenti ve abonelik çekirdeği
 

@@ -36,6 +36,8 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/public/menus/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/public/assets/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/public/table/exchange/**").permitAll()
+                        .requestMatchers("/api/table/**").permitAll()
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/webhooks/subscriptions").permitAll()
                         .requestMatchers("/api/auth/me", "/api/auth/logout", "/api/admin/**").authenticated()
