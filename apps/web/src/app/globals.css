@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
- * QRMenü tasarım sistemi.
+ * MasaAkış tasarım sistemi.
  * Tüm renk, radius ve gölge değerleri buradaki semantik tokenlardan gelir.
  * Component içinde ham hex kullanılmaz; ekranlar yalnız bu katmandan beslenir.
  */

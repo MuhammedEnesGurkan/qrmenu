@@ -23,8 +23,8 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "QRMenü · Restoranlar için QR menü ve masa operasyonu",
-    template: "%s · QRMenü",
+    default: "MasaAkış · Restoranlar için QR menü ve masa operasyonu",
+    template: "%s · MasaAkış",
   },
   description:
     "Ücretsiz QR menü ile başla, masa siparişi ve mutfak ekranı gibi operasyon özelliklerini ihtiyaç oldukça eklenti olarak aç.",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "QRMenü",
+    title: "MasaAkış",
   },
 };
 

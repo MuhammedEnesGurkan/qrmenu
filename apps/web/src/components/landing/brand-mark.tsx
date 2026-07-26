@@ -1,7 +1,7 @@
 import { cn } from "@/lib/cn";
 
 /**
- * QRMenü işareti: köşe hizalayıcıları ve orta modülüyle bir QR karesi.
+ * MasaAkış işareti: köşe hizalayıcıları ve orta modülüyle bir QR karesi.
  * Ürünün fiziksel dünyadaki karşılığı masadaki karekoddur.
  */
 export function BrandMark({ className }: { className?: string }) {
@@ -64,7 +64,7 @@ export function BrandLockup({
       <BrandMark className="size-8" />
       <span className="min-w-0">
         <span className="type-display block truncate text-base text-primary">
-          QRMenü
+          MasaAkış
         </span>
         {subtitle ? (
           <span className="block truncate text-xs text-muted">{subtitle}</span>

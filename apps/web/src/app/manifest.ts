@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "QR menü ve işletme operasyon sistemi",
     start_url: "/",
     display: "standalone",
-    background_color: "#f6f2e9",
-    theme_color: "#176b52",
+    background_color: "#f5f5f7",
+    theme_color: "#b33a50",
     lang: "tr",
     icons: [
       {
