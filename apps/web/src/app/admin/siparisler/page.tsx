@@ -1,1 +1,7 @@
-import{StaffOrders}from"@/components/staff-orders";export const metadata={title:"Siparişler"};export default function Page(){return<StaffOrders/>}
+import { OrdersBoard } from "@/components/orders/orders-board";
+
+export const metadata = { title: "Siparişler" };
+
+export default function OrdersPage() {
+  return <OrdersBoard />;
+}

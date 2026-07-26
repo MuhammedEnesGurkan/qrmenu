@@ -1,3 +1,7 @@
-import { AdminAuthForm } from "@/components/admin-auth-form";
+import { AuthForm } from "@/components/auth/auth-form";
+
 export const metadata = { title: "Yönetici girişi" };
-export default function LoginPage() { return <AdminAuthForm mode="login" />; }
+
+export default function LoginPage() {
+  return <AuthForm mode="login" />;
+}

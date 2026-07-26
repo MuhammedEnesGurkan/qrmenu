@@ -1,1 +1,7 @@
-import{TableAdmin}from"@/components/table-admin";export const metadata={title:"Masalar"};export default function Page(){return<TableAdmin/>}
+import { TablesManager } from "@/components/admin/tables-manager";
+
+export const metadata = { title: "Masalar" };
+
+export default function TablesPage() {
+  return <TablesManager />;
+}

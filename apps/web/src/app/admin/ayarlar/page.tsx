@@ -1,1 +1,13 @@
-import{ProductFeatures}from"@/components/product-features";export const metadata={title:"Eklenti ayarları"};export default function Page(){return<ProductFeatures/>}
+import { Suspense } from "react";
+import { SettingsScreen } from "@/components/settings/settings-screen";
+
+export const metadata = { title: "Ayarlar" };
+
+export default function SettingsPage() {
+  // useSearchParams içeren istemci ağacı için gerekli sınır.
+  return (
+    <Suspense>
+      <SettingsScreen />
+    </Suspense>
+  );
+}

@@ -1,3 +1,7 @@
-import { AdminDashboard } from "@/components/admin-dashboard";
-export const metadata = { title: "Yönetim paneli" };
-export default function AdminPage() { return <AdminDashboard />; }
+import { AdminOverview } from "@/components/admin/overview";
+
+export const metadata = { title: "Genel bakış" };
+
+export default function AdminPage() {
+  return <AdminOverview />;
+}
