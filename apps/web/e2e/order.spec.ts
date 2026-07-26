@@ -19,7 +19,7 @@ test("sipariş ekranı sabit sepet çubuğu ve sepet sheet'i gösterir", async (
 
   await page.getByRole("button", { name: "Flat White adedini artır" }).click();
   await page.getByRole("button", { name: "Flat White adedini artır" }).click();
-  await expect(cartButton).toContainText("2 ürün");
+  await expect(cartButton).toContainText("Sepeti gör");
   await expect(cartButton).toContainText("₺250,00");
 
   // Sabit çubuk her zaman ekranda kalmalı.
@@ -59,7 +59,7 @@ test("sipariş gönderimi başarı ekranı ve teslim numarası gösterir", async
 
   await page.getByRole("radio", { name: "Gel-al / self servis" }).click();
   await page.getByRole("button", { name: "Flat White adedini artır" }).click();
-  await page.getByRole("button", { name: /Sepet/ }).click();
+  await page.getByRole("button", { name: /Sepeti gör/ }).click();
   await page.getByRole("button", { name: /Siparişi gönder/ }).click();
 
   await expect(
@@ -84,10 +84,58 @@ test("garson çağırma ana sipariş aksiyonundan ayrı bir düğmedir", async (
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/siparis");
 
-  const waiter = page.getByRole("button", { name: "Garson çağır" });
+  const waiter = page.getByRole("button", { name: /Garson çağır/ });
   await expect(waiter).toBeVisible();
   await waiter.click();
-  await expect(page.getByText(/Garson çağrıldı/)).toBeVisible();
+  await expect(page.getByText(/Garson çağrıldı/).first()).toBeVisible();
+});
+
+test("hesap isteği garson çağrısı olarak iletilir", async ({ page }) => {
+  let body = "";
+  await page.route("**/backend/api/table/waiter-calls", (route) => {
+    body = route.request().postData() ?? "";
+    return route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ id: "c2" }),
+    });
+  });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/siparis");
+
+  await page.getByRole("button", { name: /Hesap iste/ }).click();
+  await expect(page.getByText(/Hesap isteğin iletildi/)).toBeVisible();
+  expect(body).toContain("Hesap istendi");
+});
+
+test("sepette girilen not siparişle birlikte gönderilir", async ({ page }) => {
+  let payload = "";
+  await page.route("**/backend/api/table/orders", (route) => {
+    payload = route.request().postData() ?? "";
+    return route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        id: "o2",
+        state: "SUBMITTED",
+        estimatedTotal: 125,
+        currency: "TRY",
+        version: 1,
+        pickupNumber: null,
+      }),
+    });
+  });
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/siparis");
+  await page.getByRole("button", { name: "Flat White adedini artır" }).click();
+  await page.getByRole("button", { name: /Sepeti gör/ }).click();
+  await page.getByLabel(/Sipariş notu/).fill("Soğansız olsun");
+  await page.getByRole("button", { name: /Siparişi gönder/ }).click();
+
+  await expect(
+    page.getByRole("heading", { name: "Siparişin alındı" }),
+  ).toBeVisible();
+  expect(payload).toContain("Soğansız olsun");
 });
 
 test("kategori navigasyonu masa menüsünde de çalışır", async ({ page }) => {

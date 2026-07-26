@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import {
+  Bell,
+  Minus,
+  Plus,
+  ReceiptText,
+  Search,
+  ShoppingBag,
+  Trash2,
+} from "lucide-react";
 import { cn } from "@/lib/cn";
 import { tableApi } from "@/lib/table-api";
 import { categoryAnchor } from "@/lib/menu";
@@ -46,7 +54,9 @@ export function TableOrder() {
   const [serviceMode, setServiceMode] = useState("DINE_IN");
   const [cartOpen, setCartOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [callingWaiter, setCallingWaiter] = useState(false);
+  const [callingWaiter, setCallingWaiter] = useState("");
+  const [query, setQuery] = useState("");
+  const [note, setNote] = useState("");
   const [activeAnchor, setActiveAnchor] = useState<string | null>(null);
   const navRef = useRef<HTMLDivElement>(null);
 
@@ -76,6 +86,25 @@ export function TableOrder() {
     () => sections.flatMap((section) => section.products),
     [sections],
   );
+
+  /**
+   * Ekranda gösterilen bölümler. Sepet hesabı her zaman tüm ürünler üzerinden
+   * yapılır; arama yalnız görünürlüğü daraltır.
+   */
+  const visibleSections = useMemo(() => {
+    const normalized = query.trim().toLocaleLowerCase("tr-TR");
+    if (!normalized) return sections;
+    return sections
+      .map((section) => ({
+        ...section,
+        products: section.products.filter((product) =>
+          `${product.name} ${product.description ?? ""} ${section.name}`
+            .toLocaleLowerCase("tr-TR")
+            .includes(normalized),
+        ),
+      }))
+      .filter((section) => section.products.length > 0);
+  }, [sections, query]);
 
   const lines = useMemo(
     () =>
@@ -154,12 +183,13 @@ export function TableOrder() {
             quantity: line.quantity,
             notes: null,
           })),
-          customerNote: null,
+          customerNote: note.trim() || null,
           serviceMode,
         }),
       });
       setOrder(created);
       setCart({});
+      setNote("");
       setCartOpen(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (caught) {
@@ -171,20 +201,30 @@ export function TableOrder() {
     }
   }
 
-  async function callWaiter() {
-    setCallingWaiter(true);
+  /**
+   * Hem "Garson çağır" hem "Hesap iste" aynı garson-çağrısı endpoint'ine
+   * farklı mesajla düşer. Ödeme veya POS işlemi yapılmaz.
+   */
+  async function callWaiter(kind: "GARSON" | "HESAP") {
+    setCallingWaiter(kind);
     try {
       await tableApi("/api/table/waiter-calls", {
         method: "POST",
-        body: JSON.stringify({ message: "Masa desteği" }),
+        body: JSON.stringify({
+          message: kind === "HESAP" ? "Hesap istendi" : "Garson çağrıldı",
+        }),
       });
-      toast.success("Garson çağrıldı. Birazdan masanıza gelecek.");
+      toast.success(
+        kind === "HESAP"
+          ? "Hesap isteğin iletildi. Personel birazdan masana gelecek."
+          : "Garson çağrıldı. Birazdan masana gelecek.",
+      );
     } catch (caught) {
       toast.error(
-        caught instanceof Error ? caught.message : "Garson çağrılamadı.",
+        caught instanceof Error ? caught.message : "İstek iletilemedi.",
       );
     } finally {
-      setCallingWaiter(false);
+      setCallingWaiter("");
     }
   }
 
@@ -235,11 +275,59 @@ export function TableOrder() {
           </p>
         </header>
 
+        {/* Misafirin en sık ihtiyaç duyduğu iki talep, menüden önce */}
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => void callWaiter("GARSON")}
+            disabled={callingWaiter !== ""}
+            className="flex min-h-[4.5rem] flex-col justify-center rounded-xl border border-primary/25 bg-primary-soft px-4 text-left transition hover:border-primary/50 disabled:opacity-60"
+          >
+            <span className="flex items-center gap-2 text-sm font-semibold text-primary">
+              <Bell size={17} aria-hidden="true" />
+              Garson çağır
+            </span>
+            <span className="mt-0.5 text-xs text-muted">
+              {callingWaiter === "GARSON" ? "İletiliyor…" : "Size yardımcı olalım"}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => void callWaiter("HESAP")}
+            disabled={callingWaiter !== ""}
+            className="flex min-h-[4.5rem] flex-col justify-center rounded-xl border border-success/25 bg-success-soft px-4 text-left transition hover:border-success/50 disabled:opacity-60"
+          >
+            <span className="flex items-center gap-2 text-sm font-semibold text-success">
+              <ReceiptText size={17} aria-hidden="true" />
+              Hesap iste
+            </span>
+            <span className="mt-0.5 text-xs text-muted">
+              {callingWaiter === "HESAP" ? "İletiliyor…" : "Hesabımızı getirin"}
+            </span>
+          </button>
+        </div>
+
         {order ? (
           <div className="mt-5">
             <OrderSuccess order={order} onNewOrder={() => setOrder(null)} />
           </div>
         ) : null}
+
+        <div className="relative mt-4">
+          <Search
+            aria-hidden="true"
+            size={17}
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Ürün veya kategori ara"
+            aria-label="Menüde ara"
+            className="h-12 w-full rounded-xl border border-input bg-surface pl-11 pr-4 text-base outline-none transition placeholder:text-muted focus:border-primary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+          />
+        </div>
 
         {!data.orderingEnabled ? (
           <Alert tone="info" className="mt-5">
@@ -248,7 +336,7 @@ export function TableOrder() {
           </Alert>
         ) : null}
 
-        {sections.length > 1 ? (
+        {visibleSections.length > 1 && !query.trim() ? (
           <nav
             aria-label="Kategoriler"
             className="sticky top-0 z-20 -mx-4 mt-5 bg-bg/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6"
@@ -284,10 +372,17 @@ export function TableOrder() {
           <EmptyState
             className="mt-6"
             title="Menü henüz hazır değil"
-            description="Bu masaya bağlı menüde ürün bulunmuyor. Personelden yardım isteyebilirsiniz."
+            description="Bu masaya bağlı menüde ürün bulunmuyor. Personelden yardım isteyebilirsin."
+          />
+        ) : visibleSections.length === 0 ? (
+          <EmptyState
+            className="mt-6"
+            icon={<Search size={20} />}
+            title="Aramana uygun ürün yok"
+            description={`"${query.trim()}" için sonuç bulunamadı. Farklı bir kelime deneyebilirsin.`}
           />
         ) : (
-          sections.map((section) => (
+          visibleSections.map((section) => (
             <section
               key={section.anchor}
               id={section.anchor}
@@ -333,35 +428,31 @@ export function TableOrder() {
             />
           ) : null}
 
-          <div className="flex items-center gap-2">
+          {data.orderingEnabled ? (
             <Button
-              variant="outline"
               size="lg"
-              className="shrink-0"
-              loading={callingWaiter}
-              leadingIcon={<Bell size={18} aria-hidden="true" />}
-              onClick={() => void callWaiter()}
-            >
-              <span className="hidden sm:inline">Garson çağır</span>
-              <span className="sm:hidden sr-only">Garson çağır</span>
-            </Button>
-
-            {data.orderingEnabled ? (
-              <Button
-                size="lg"
-                className="min-w-0 flex-1"
-                disabled={itemCount === 0}
-                onClick={() => setCartOpen(true)}
-                leadingIcon={<ShoppingBag size={18} aria-hidden="true" />}
-              >
-                <span className="truncate">
-                  {itemCount === 0
-                    ? "Sepet boş"
-                    : `Sepet · ${itemCount} ürün · ${formatMoney(total, currency)}`}
+              fullWidth
+              className="min-h-14"
+              disabled={itemCount === 0}
+              onClick={() => setCartOpen(true)}
+              leadingIcon={
+                <span className="relative">
+                  <ShoppingBag size={19} aria-hidden="true" />
+                  {itemCount > 0 ? (
+                    <span className="type-chit absolute -right-2 -top-2 grid min-w-4 place-items-center rounded-full bg-primary-fg px-1 text-[0.6rem] font-semibold text-primary">
+                      {itemCount}
+                    </span>
+                  ) : null}
                 </span>
-              </Button>
-            ) : null}
-          </div>
+              }
+            >
+              <span className="truncate">
+                {itemCount === 0
+                  ? "Sepetin boş"
+                  : `Sepeti gör · ${formatMoney(total, currency)}`}
+              </span>
+            </Button>
+          ) : null}
 
           <p className="py-2 text-center text-[0.7rem] leading-4 text-muted">
             Gösterilen tutar tahminidir; ödeme, POS veya mali belge değildir.
@@ -439,6 +530,27 @@ export function TableOrder() {
                   </li>
                 ))}
               </ul>
+
+              <div className="mt-4">
+                <label
+                  htmlFor="order-note"
+                  className="text-sm font-medium text-fg"
+                >
+                  Sipariş notu
+                  <span className="ml-1 text-xs font-normal text-muted">
+                    (isteğe bağlı)
+                  </span>
+                </label>
+                <textarea
+                  id="order-note"
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                  maxLength={500}
+                  rows={2}
+                  placeholder="Özel isteklerini buraya yazabilirsin…"
+                  className="mt-1.5 min-h-16 w-full rounded-lg border border-input bg-surface px-3 py-2.5 text-base outline-none transition placeholder:text-muted focus:border-primary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
+                />
+              </div>
 
               <p className="mt-4 flex items-baseline justify-between gap-3 border-t border-border pt-4">
                 <span className="text-sm text-muted">Tahmini toplam</span>
