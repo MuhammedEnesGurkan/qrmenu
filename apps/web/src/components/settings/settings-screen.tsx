@@ -15,21 +15,19 @@ import { useToast } from "@/components/ui/toast";
 import { AdminShell, useAdmin } from "../admin/admin-shell";
 import { useAction, useResource } from "../admin/use-resource";
 import { BrandingTab } from "./branding-tab";
-import { ReportsTab } from "./reports-tab";
 import { TranslationsTab } from "./translations-tab";
 
 const TABS = [
   { value: "subeler", label: "Şubeler" },
   { value: "marka", label: "Marka" },
   { value: "diller", label: "Diller" },
-  { value: "raporlar", label: "Raporlar" },
 ];
 
 export function SettingsScreen() {
   return (
     <AdminShell
-      title="Şubeler, marka ve raporlar"
-      description="Eklentiye bağlı ayarlar. Bir eklenti kapalıysa ilgili işlem sunucu tarafında engellenir."
+      title="Ayarlar"
+      description="Şube, marka ve dil ayarları. Bir eklenti kapalıysa ilgili işlem sunucu tarafında engellenir."
       breadcrumb={[{ label: "Ayarlar" }]}
     >
       <SettingsBody />
@@ -100,7 +98,6 @@ function SettingsBody() {
           onSaved={reload}
         />
       ) : null}
-      {active === "raporlar" ? <ReportsTab /> : null}
     </div>
   );
 }

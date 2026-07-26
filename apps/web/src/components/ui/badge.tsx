@@ -8,6 +8,7 @@ export type BadgeTone =
   | "warning"
   | "destructive"
   | "info"
+  | "violet"
   | "accent";
 
 const tones: Record<BadgeTone, string> = {
@@ -17,6 +18,7 @@ const tones: Record<BadgeTone, string> = {
   warning: "bg-warning-soft text-warning ring-warning/20",
   destructive: "bg-destructive-soft text-destructive ring-destructive/15",
   info: "bg-info-soft text-info ring-info/15",
+  violet: "bg-violet-soft text-violet ring-violet/15",
   accent: "bg-accent-soft text-accent ring-accent/20",
 };
 

@@ -44,8 +44,8 @@ type OverviewData = {
 export function AdminOverview() {
   return (
     <AdminShell
-      title="Genel bakış"
-      description="Menünün yayın durumu, günlük operasyon özeti ve hızlı işlemler."
+      title="Yönetim paneli"
+      description="Restoranının genel durumunu buradan takip et."
     >
       <OverviewBody />
     </AdminShell>

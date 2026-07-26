@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, IBM_Plex_Mono, Inter } from "next/font/google";
+import { IBM_Plex_Mono, Inter } from "next/font/google";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
@@ -13,14 +13,6 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
-/** Başlıklar: genişlik ekseni açık grotesk, menü tabelası karakteri için. */
-const archivo = Archivo({
-  subsets: ["latin", "latin-ext"],
-  axes: ["wdth"],
-  display: "swap",
-  variable: "--font-archivo",
-});
-
 /** Fiş verisi: teslim numarası, masa, süre, tutar. */
 const plexMono = IBM_Plex_Mono({
   subsets: ["latin", "latin-ext"],
@@ -31,8 +23,8 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "MasaAkış · Restoranlar için QR menü ve masa operasyonu",
-    template: "%s · MasaAkış",
+    default: "QRMenü · Restoranlar için QR menü ve masa operasyonu",
+    template: "%s · QRMenü",
   },
   description:
     "Ücretsiz QR menü ile başla, masa siparişi ve mutfak ekranı gibi operasyon özelliklerini ihtiyaç oldukça eklenti olarak aç.",
@@ -40,14 +32,14 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "MasaAkış",
+    title: "QRMenü",
   },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#14624b",
+  themeColor: "#b33a50",
   viewportFit: "cover",
 };
 
@@ -57,7 +49,7 @@ export default function RootLayout({
   return (
     <html
       lang="tr"
-      className={`${inter.variable} ${archivo.variable} ${plexMono.variable}`}
+      className={`${inter.variable} ${plexMono.variable}`}
     >
       <body>
         <a

@@ -17,20 +17,45 @@ test("admin shell masaüstünde sidebar, mobilde açılır menü gösterir", asy
 
   const nav = page.getByRole("navigation", { name: "Yönetim menüsü" }).first();
   await expect(nav).toBeVisible();
-  await expect(nav.getByRole("link", { name: "Genel bakış" })).toHaveAttribute(
+  await expect(nav.getByRole("link", { name: "Yönetim paneli" })).toHaveAttribute(
     "aria-current",
     "page",
   );
-  await expect(page.getByRole("button", { name: "Menüyü aç", exact: true })).toBeHidden();
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  const toggle = page.getByRole("button", { name: "Menüyü aç", exact: true });
-  await expect(toggle).toBeVisible();
-  await toggle.click();
   await expect(
-    page.getByRole("button", { name: "Menüyü kapat" }),
+    page.getByRole("navigation", { name: "Ana navigasyon" }),
+  ).toBeHidden();
+
+  // Mobilde sidebar yerine alt tab bar; kalan bölümler "Daha fazla" içinde.
+  await page.setViewportSize({ width: 390, height: 844 });
+  const bottomNav = page.getByRole("navigation", { name: "Ana navigasyon" });
+  await expect(bottomNav).toBeVisible();
+  await expect(bottomNav.getByRole("link", { name: "Siparişler" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Daha fazla" }).click();
+  await expect(page.getByText("Tüm bölümler")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Garson paneli" }).first(),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Kapat" }).click();
+  await expect(page.getByText("Tüm bölümler")).toHaveCount(0);
   await expectNoHorizontalOverflow(page);
+});
+
+test("mobil alt tab bar içeriği kapatmaz", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/admin");
+  await page.waitForTimeout(600);
+
+  const nav = page.getByRole("navigation", { name: "Ana navigasyon" });
+  const navBox = await nav.boundingBox();
+  const mainBottom = await page.evaluate(() => {
+    const main = document.getElementById("main");
+    if (!main) return 0;
+    const style = getComputedStyle(main);
+    return parseFloat(style.paddingBottom);
+  });
+  // Ana içeriğin alt boşluğu tab barı karşılamalı.
+  expect(mainBottom).toBeGreaterThanOrEqual((navBox?.height ?? 0) - 8);
 });
 
 test("genel bakış özet kartlarını ve yayın durumunu gösterir", async ({
@@ -39,7 +64,7 @@ test("genel bakış özet kartlarını ve yayın durumunu gösterir", async ({
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/admin");
 
-  await expect(page.getByRole("heading", { name: "Genel bakış" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Yönetim paneli" })).toBeVisible();
   await expect(page.getByText("Yayında", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("/m/test-kafe")).toBeVisible();
   await expect(page.getByText("Kategori", { exact: true })).toBeVisible();
@@ -131,6 +156,8 @@ test("tüm yönetim ekranları kırılım noktalarında taşmıyor", async ({ pa
     "/admin/masalar",
     "/admin/siparisler",
     "/admin/mutfak",
+    "/admin/garson",
+    "/admin/raporlar",
     "/admin/katalog-pro",
     "/admin/personel",
     "/admin/eklentiler",
