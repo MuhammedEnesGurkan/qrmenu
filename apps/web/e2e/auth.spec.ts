@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { expectNoHorizontalOverflow, sweepWidths } from "./helpers";
+import {
+  expectNoHorizontalOverflow,
+  expectTouchTarget,
+  sweepWidths,
+} from "./helpers";
 
 test("registration form hydrates and sends a POST request", async ({ page }) => {
   let registerMethod = "";
@@ -40,6 +44,18 @@ test("giriş formu parola göster/gizle ve alan hatası gösterir", async ({
   const password = page.getByLabel("Parola", { exact: true });
   await password.fill("gizli-parola");
   await expect(password).toHaveAttribute("type", "password");
+
+  // Göz düğmesi de projenin 44px dokunma hedefini karşılamalı; input'un
+  // sağ boşluğundan taşmamalı ki metin ikonun altına girmesin.
+  await expectTouchTarget(page, 'button[aria-label="Parolayı göster"]');
+  const inputBox = await password.boundingBox();
+  const toggleBox = await page
+    .getByRole("button", { name: "Parolayı göster" })
+    .boundingBox();
+  expect(toggleBox?.width ?? 0).toBeGreaterThanOrEqual(44);
+  const toggleRight = (toggleBox?.x ?? 0) + (toggleBox?.width ?? 0);
+  const inputRight = (inputBox?.x ?? 0) + (inputBox?.width ?? 0);
+  expect(toggleRight).toBeLessThanOrEqual(inputRight + 1);
 
   await page.getByRole("button", { name: "Parolayı göster" }).click();
   await expect(password).toHaveAttribute("type", "text");

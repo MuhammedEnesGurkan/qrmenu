@@ -160,7 +160,13 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                   onClick={() => setShowPassword((value) => !value)}
                   aria-label={showPassword ? "Parolayı gizle" : "Parolayı göster"}
                   aria-pressed={showPassword}
-                  className="absolute right-1 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-muted transition hover:bg-sunken hover:text-fg"
+                  /*
+                   * size-11 = 44px: projenin her yerde uyguladığı dokunma
+                   * hedefi. İkon 16px kalır, büyüyen yalnız basılabilir alan.
+                   * right-1 (4px) + 44px = 48px, input'un pr-12'siyle tam
+                   * örtüşür; metin ikonun altına girmez.
+                   */
+                  className="absolute right-1 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-lg text-muted transition duration-150 hover:bg-sunken hover:text-fg active:scale-[0.94]"
                 >
                   {showPassword ? (
                     <EyeOff size={16} aria-hidden="true" />
