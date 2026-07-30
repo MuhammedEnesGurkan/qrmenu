@@ -17,18 +17,25 @@ import { FormField, Input, Select } from "@/components/ui/field";
 import { ConfirmDialog, Dialog, useConfirm } from "@/components/ui/overlay";
 import { Tabs } from "@/components/ui/tabs";
 import { Alert, EmptyState, ErrorState, Skeleton } from "@/components/ui/states";
-import { AdminShell, useAdmin } from "./admin-shell";
+import {
+  AnimatePresence,
+  SkeletonTransition,
+  StaggerItem,
+  StaggerList,
+  useRetained,
+} from "@/components/motion";
+import { AdminScreen, useAdmin } from "./admin-shell";
 import { useAction, useResource } from "./use-resource";
 
 export function TablesManager() {
   return (
-    <AdminShell
+    <AdminScreen
       title="Alanlar ve masalar"
       description="Her masa kendi QR kodunu taşır. QR yenilendiğinde eski kod anında geçersiz olur."
       breadcrumb={[{ label: "Masalar" }]}
     >
       <TablesBody />
-    </AdminShell>
+    </AdminScreen>
   );
 }
 
@@ -37,7 +44,7 @@ function TablesBody() {
   const canManage = user.permissions.includes("table/manage");
 
   const loader = useCallback(() => api<Area[]>("/api/admin/tables"), []);
-  const { data, error, loading, reload } = useResource(loader);
+  const { data, error, reload } = useResource(loader);
   const { busy, run } = useAction(reload);
 
   const [activeArea, setActiveArea] = useState("");
@@ -47,27 +54,29 @@ function TablesBody() {
     null,
   );
   const rotate = useConfirm<TableRow>();
+  // QR paneli kapanırken içerik boşalmasın diye son değer tutulur.
+  const shownQr = useRetained(qr);
 
-  if (loading && !data) {
-    return (
-      <div role="status" aria-live="polite" className="grid gap-4">
-        <span className="sr-only">Masalar yükleniyor…</span>
-        <Skeleton className="h-11 w-64 rounded-lg" />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }, (_, index) => (
-            <Skeleton key={index} className="h-32 w-full rounded-2xl" />
-          ))}
-        </div>
-      </div>
-    );
-  }
   if (error && !data) return <ErrorState message={error} onRetry={reload} />;
 
   const areas = data ?? [];
   const current = areas.find((area) => area.id === activeArea) ?? areas[0];
   const totalTables = areas.reduce((sum, area) => sum + area.tables.length, 0);
 
+  const skeleton = (
+    <div role="status" aria-live="polite" className="grid gap-4">
+      <span className="sr-only">Masalar yükleniyor…</span>
+      <Skeleton className="h-11 w-64 rounded-lg" />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }, (_, index) => (
+          <Skeleton key={index} className="h-32 w-full rounded-2xl" />
+        ))}
+      </div>
+    </div>
+  );
+
   return (
+    <SkeletonTransition loading={!data} skeleton={skeleton}>
     <div className="grid gap-6">
       <Card>
         <CardHeader
@@ -134,11 +143,22 @@ function TablesBody() {
               }
             />
           ) : (
-            <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {current?.tables.map((table) => (
-                <li
+            /*
+             * Alan sekmesi değişince kartlar yerinde takas edilmez: eskiler
+             * çıkış animasyonuyla ayrılır, yeniler sırayla girer. Grid yeniden
+             * dizilirken `layout` sıçramayı engeller.
+             */
+            <StaggerList
+              as="ul"
+              className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+            >
+              <AnimatePresence initial={false} mode="popLayout">
+              {current?.tables.map((table, index) => (
+                <StaggerItem
+                  as="li"
                   key={table.id}
-                  className="flex flex-col rounded-2xl border border-border bg-surface p-4 shadow-xs"
+                  index={index}
+                  className="flex flex-col rounded-2xl border border-border bg-surface p-4 shadow-xs transition-colors duration-200"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="min-w-0 truncate text-base font-semibold text-fg">
@@ -171,17 +191,17 @@ function TablesBody() {
                       QR yenile
                     </Button>
                   ) : null}
-                </li>
+                </StaggerItem>
               ))}
-            </ul>
+              </AnimatePresence>
+            </StaggerList>
           )}
         </>
       )}
 
-      {/* Alan oluşturma */}
-      {areaOpen ? (
+      {/* Alan oluşturma — `open` prop'u ile: kapanış animasyonu tamamlanır. */}
         <Dialog
-          open
+          open={areaOpen}
           onClose={() => setAreaOpen(false)}
           size="sm"
           title="Yeni alan"
@@ -224,12 +244,10 @@ function TablesBody() {
             </FormField>
           </form>
         </Dialog>
-      ) : null}
 
       {/* Masa oluşturma */}
-      {tableOpen ? (
         <Dialog
-          open
+          open={tableOpen}
           onClose={() => setTableOpen(false)}
           size="sm"
           title="Masa ve QR oluştur"
@@ -290,24 +308,23 @@ function TablesBody() {
             </FormField>
           </form>
         </Dialog>
-      ) : null}
 
       {/* QR gösterimi */}
-      {qr ? (
+      {shownQr ? (
         <Dialog
-          open
+          open={qr !== null}
           onClose={() => setQr(null)}
           size="sm"
-          title={`${qr.tableName} QR kodu`}
+          title={`${shownQr.tableName} QR kodu`}
           footer={
             <>
               <Button variant="outline" onClick={() => setQr(null)}>
                 Kapat
               </Button>
               <a
-                download={`masa-qr-${qr.code.tableId}.png`}
-                href={`data:image/png;base64,${qr.code.qrPngBase64}`}
-                className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-fg transition hover:bg-primary-hover"
+                download={`masa-qr-${shownQr.code.tableId}.png`}
+                href={`data:image/png;base64,${shownQr.code.qrPngBase64}`}
+                className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-fg transition duration-150 hover:bg-primary-hover active:scale-[0.97]"
               >
                 <Download size={16} aria-hidden="true" />
                 PNG indir
@@ -323,12 +340,12 @@ function TablesBody() {
             {/* Sunucudan gelen base64 PNG doğrudan gösterilir. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              alt={`${qr.tableName} için masa QR kodu`}
-              src={`data:image/png;base64,${qr.code.qrPngBase64}`}
+              alt={`${shownQr.tableName} için masa QR kodu`}
+              src={`data:image/png;base64,${shownQr.code.qrPngBase64}`}
               className="block w-full"
             />
             <p className="mt-3 text-center text-sm font-semibold text-fg">
-              {qr.tableName}
+              {shownQr.tableName}
             </p>
           </div>
         </Dialog>
@@ -355,5 +372,6 @@ function TablesBody() {
         }}
       />
     </div>
+    </SkeletonTransition>
   );
 }

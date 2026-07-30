@@ -8,13 +8,25 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import {
+  AnimatePresence,
+  motion,
+  useDragControls,
+  useReducedMotion,
+} from "motion/react";
 import { cn } from "@/lib/cn";
+import { duration, ease, reducedTween, spring, tween } from "@/lib/motion";
 import { Button, IconButton } from "./button";
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-type Presentation = "dialog" | "sheet" | "responsive";
+/**
+ * dialog  — her boyutta ortalanmış pencere.
+ * sheet   — mobilde alttan, masaüstünde ortalanmış.
+ * drawer  — mobilde alttan, masaüstünde sağdan tam boy çekmece.
+ */
+type Presentation = "dialog" | "sheet" | "drawer";
 
 type OverlayProps = {
   open: boolean;
@@ -27,9 +39,26 @@ type OverlayProps = {
   children: ReactNode;
 };
 
+/** Masaüstü kırılımı (Tailwind `sm`). Panelin hangi yönden geleceğini belirler. */
+function useIsWide() {
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 640px)");
+    setWide(query.matches);
+    const onChange = (event: MediaQueryListEvent) => setWide(event.matches);
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
+  return wide;
+}
+
 /**
  * Ortak modal kabuğu. Escape ile kapanma, focus trap, focus geri verme ve
  * arka plan scroll kilidi tek yerde çözülür.
+ *
+ * Panel `AnimatePresence` içinde durur: kapanış animasyonu bitmeden DOM'dan
+ * kaldırılmaz, dolayısıyla scroll kilidi ve focus geri verme de çıkış
+ * tamamlandıktan sonra çalışır.
  */
 function Overlay({
   open,
@@ -41,13 +70,45 @@ function Overlay({
   size = "md",
   children,
 }: OverlayProps) {
+  return (
+    <AnimatePresence>
+      {open ? (
+        <OverlayPanel
+          onClose={onClose}
+          title={title}
+          description={description}
+          footer={footer}
+          presentation={presentation}
+          size={size}
+        >
+          {children}
+        </OverlayPanel>
+      ) : null}
+    </AnimatePresence>
+  );
+}
+
+function OverlayPanel({
+  onClose,
+  title,
+  description,
+  footer,
+  presentation,
+  size,
+  children,
+}: Omit<OverlayProps, "open" | "presentation" | "size"> & {
+  presentation: Presentation;
+  size: "sm" | "md" | "lg";
+}) {
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
   const descriptionId = useId();
+  const reduced = useReducedMotion();
+  const wide = useIsWide();
+  const dragControls = useDragControls();
 
   useEffect(() => {
-    if (!open) return;
     restoreRef.current = document.activeElement as HTMLElement | null;
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -65,7 +126,9 @@ function Overlay({
       if (event.key !== "Tab" || !panelRef.current) return;
       const nodes = Array.from(
         panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE),
-      ).filter((node) => node.offsetParent !== null || node === document.activeElement);
+      ).filter(
+        (node) => node.offsetParent !== null || node === document.activeElement,
+      );
       if (nodes.length === 0) return;
       const firstNode = nodes[0];
       const lastNode = nodes[nodes.length - 1];
@@ -84,42 +147,104 @@ function Overlay({
       document.body.style.overflow = overflow;
       restoreRef.current?.focus?.();
     };
-  }, [open, onClose]);
+  }, [onClose]);
 
-  if (!open) return null;
+  const isDrawer = presentation === "drawer";
+  // Mobilde drawer ve sheet aynı şeydir: alttan gelen yaprak.
+  const asBottomSheet = !wide && presentation !== "dialog";
+  const asSideDrawer = wide && isDrawer;
 
   const widths = { sm: "sm:max-w-md", md: "sm:max-w-xl", lg: "sm:max-w-3xl" }[
     size
   ];
 
-  const isSheet = presentation === "sheet";
-  const isResponsive = presentation === "responsive";
+  /*
+   * Yalnız transform ve opacity animate edilir. Panelin konumu flex ile
+   * kurulduğu için width/height/top/left'e hiç dokunulmaz.
+   */
+  const panelMotion = reduced
+    ? {
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+        transition: reducedTween,
+      }
+    : asBottomSheet
+      ? {
+          initial: { y: "100%" },
+          animate: { y: 0 },
+          exit: { y: "100%" },
+          transition: spring.surface,
+        }
+      : asSideDrawer
+        ? {
+            initial: { x: "100%" },
+            animate: { x: 0 },
+            exit: { x: "100%" },
+            transition: { duration: duration.normal, ease },
+          }
+        : {
+            initial: { opacity: 0, scale: 0.97, y: 8 },
+            animate: { opacity: 1, scale: 1, y: 0 },
+            exit: { opacity: 0, scale: 0.98, y: 4 },
+            transition: { duration: duration.normal, ease },
+          };
 
   return (
-    <div
+    <motion.div
       className={cn(
         "fixed inset-0 z-50 flex bg-inverse/50 backdrop-blur-[2px]",
-        isSheet || isResponsive
-          ? "items-end sm:items-center sm:justify-center sm:p-6"
+        asSideDrawer
+          ? "justify-end"
           : "items-end sm:items-center sm:justify-center sm:p-6",
       )}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={reduced ? reducedTween : tween.fast}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <div
+      <motion.div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
+        {...panelMotion}
+        /*
+         * Aşağı kaydırarak kapatma yalnız mobil yaprakta ve yalnız tutamaktan
+         * başlatılır; içerik alanının kendi scroll'u bozulmasın diye
+         * dragListener kapalı.
+         */
+        drag={asBottomSheet && !reduced ? "y" : false}
+        dragControls={dragControls}
+        dragListener={false}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.4 }}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 120 || info.velocity.y > 600) onClose();
+        }}
         className={cn(
-          "animate-fade-up flex max-h-[92dvh] w-full flex-col overflow-hidden bg-surface shadow-overlay outline-none",
-          "rounded-t-3xl sm:rounded-2xl",
-          widths,
+          "flex w-full flex-col overflow-hidden bg-surface shadow-overlay outline-none",
+          asSideDrawer
+            ? "h-dvh max-w-lg rounded-l-2xl"
+            : "max-h-[92dvh] rounded-t-3xl sm:rounded-2xl",
+          !asSideDrawer && widths,
         )}
       >
+        {asBottomSheet && !reduced ? (
+          <div
+            aria-hidden="true"
+            onPointerDown={(event) => dragControls.start(event)}
+            className="flex shrink-0 cursor-grab touch-none justify-center pt-2.5 active:cursor-grabbing"
+          >
+            <span className="h-1 w-9 rounded-full bg-border-strong" />
+          </div>
+        ) : null}
+
         <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4 sm:px-6">
           <div className="min-w-0">
             <h2
@@ -157,8 +282,8 @@ function Overlay({
         ) : (
           <div className="safe-bottom" />
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -168,7 +293,12 @@ export function Dialog(props: Omit<OverlayProps, "presentation">) {
 
 /** Mobilde bottom sheet, masaüstünde ortalanmış panel. */
 export function Sheet(props: Omit<OverlayProps, "presentation">) {
-  return <Overlay {...props} presentation="responsive" />;
+  return <Overlay {...props} presentation="sheet" />;
+}
+
+/** Mobilde bottom sheet, masaüstünde sağdan tam boy çekmece. */
+export function Drawer(props: Omit<OverlayProps, "presentation">) {
+  return <Overlay {...props} presentation="drawer" />;
 }
 
 export function ConfirmDialog({

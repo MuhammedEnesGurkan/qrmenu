@@ -18,13 +18,19 @@ import { Checkbox, FormField, Input } from "@/components/ui/field";
 import { Dialog } from "@/components/ui/overlay";
 import { Tabs } from "@/components/ui/tabs";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui/states";
+import {
+  AnimatePresence,
+  SkeletonTransition,
+  StaggerItem,
+  StaggerList,
+} from "@/components/motion";
 import { useToast } from "@/components/ui/toast";
-import { AdminShell, useAdmin } from "../admin/admin-shell";
+import { AdminScreen, useAdmin } from "../admin/admin-shell";
 import { useResource } from "../admin/use-resource";
 
 export function KitchenScreen() {
   return (
-    <AdminShell
+    <AdminScreen
       title="Mutfak istasyonları"
       description="Kabul edilen siparişler kategoriye göre istasyon kuyruğuna düşer."
       breadcrumb={[{ label: "Mutfak" }]}
@@ -33,7 +39,7 @@ export function KitchenScreen() {
       <div className="mx-auto w-full max-w-[1600px]">
         <KitchenBody />
       </div>
-    </AdminShell>
+    </AdminScreen>
   );
 }
 
@@ -59,7 +65,7 @@ function KitchenBody() {
       ]),
     [],
   );
-  const { data, error, loading, reload } = useResource(loader);
+  const { data, error, reload } = useResource(loader);
   const overview = data?.[0];
   const catalog = data?.[1];
 
@@ -113,22 +119,22 @@ function KitchenBody() {
     }
   }
 
-  if (loading && !data) {
-    return (
-      <div role="status" aria-live="polite" className="grid gap-4">
-        <span className="sr-only">Mutfak ekranı yükleniyor…</span>
-        <Skeleton className="h-11 w-72 rounded-lg" />
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {Array.from({ length: 6 }, (_, index) => (
-            <Skeleton key={index} className="h-48 w-full rounded-2xl" />
-          ))}
-        </div>
-      </div>
-    );
-  }
   if (error && !data) return <ErrorState message={error} onRetry={reload} />;
 
+  const skeleton = (
+    <div role="status" aria-live="polite" className="grid gap-4">
+      <span className="sr-only">Mutfak ekranı yükleniyor…</span>
+      <Skeleton className="h-11 w-72 rounded-lg" />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 6 }, (_, index) => (
+          <Skeleton key={index} className="h-48 w-full rounded-2xl" />
+        ))}
+      </div>
+    </div>
+  );
+
   return (
+    <SkeletonTransition loading={!data} skeleton={skeleton}>
     <div className="grid gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         {overview && overview.stations.length > 0 ? (
@@ -196,26 +202,35 @@ function KitchenBody() {
           description={`${activeStation?.name} istasyonunda bekleyen kalem yok. Yeni sipariş kabul edildiğinde otomatik görünür.`}
         />
       ) : (
-        <ul
+        /*
+         * Kalem tamamlanınca kuyruktan çıkış animasyonuyla ayrılır, kalanlar
+         * boşluğu kaparak kayar. Mutfakta ekran uzaktan izlendiği için hareket
+         * "bir şey değişti" sinyali taşır.
+         */
+        <StaggerList
+          as="ul"
           aria-live="polite"
           className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
         >
-          {items.map((item) => (
-            <KitchenCard
-              key={item.itemId}
-              item={item}
-              now={tick}
-              busy={pendingItem === item.itemId}
-              canPrepare={canPrepare}
-              onAdvance={advance}
-            />
-          ))}
-        </ul>
+          <AnimatePresence initial={false} mode="popLayout">
+            {items.map((item, index) => (
+              <KitchenCard
+                key={item.itemId}
+                item={item}
+                index={index}
+                now={tick}
+                busy={pendingItem === item.itemId}
+                canPrepare={canPrepare}
+                onAdvance={advance}
+              />
+            ))}
+          </AnimatePresence>
+        </StaggerList>
       )}
 
-      {stationOpen && catalog ? (
+      {catalog ? (
         <Dialog
-          open
+          open={stationOpen}
           onClose={() => setStationOpen(false)}
           title="Yeni mutfak istasyonu"
           description="Seçilen kategorilerdeki ürünler bu istasyonun kuyruğuna düşer."
@@ -308,17 +323,20 @@ function KitchenBody() {
         </Dialog>
       ) : null}
     </div>
+    </SkeletonTransition>
   );
 }
 
 function KitchenCard({
   item,
+  index,
   now,
   busy,
   canPrepare,
   onAdvance,
 }: {
   item: KitchenItem;
+  index: number;
   now: number;
   busy: boolean;
   canPrepare: boolean;
@@ -332,9 +350,13 @@ function KitchenCard({
   const late = minutes >= 15;
 
   return (
-    <li
+    <StaggerItem
+      as="li"
+      index={index}
       className={cn(
         "flex flex-col rounded-2xl border-2 bg-surface p-5 shadow-sm",
+        // Durum değişince kenarlık rengi erir, sertçe atlamaz.
+        "transition-colors duration-200",
         item.kitchenState === "PREPARING"
           ? "border-warning/50"
           : item.kitchenState === "DONE"
@@ -394,6 +416,6 @@ function KitchenCard({
           {item.kitchenState === "QUEUED" ? "Hazırlamaya başla" : "Tamamlandı"}
         </Button>
       ) : null}
-    </li>
+    </StaggerItem>
   );
 }

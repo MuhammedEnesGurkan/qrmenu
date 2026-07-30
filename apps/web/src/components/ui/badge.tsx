@@ -37,6 +37,8 @@ export function Badge({
     <span
       className={cn(
         "inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset",
+        // Durum değişince rozet yeni rengine erir; sert takas dikkat çeker.
+        "transition-colors duration-200 ease-out",
         tones[tone],
         className,
       )}

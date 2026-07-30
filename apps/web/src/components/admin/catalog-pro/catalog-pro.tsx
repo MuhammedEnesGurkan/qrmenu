@@ -24,7 +24,7 @@ import { ConfirmDialog } from "@/components/ui/overlay";
 import { SegmentedControl } from "@/components/ui/tabs";
 import { Alert, Skeleton } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
-import { AdminShell } from "../admin-shell";
+import { AdminScreen } from "../admin-shell";
 
 const PRICE_MODES = [
   { value: "PERCENT", label: "Yüzde", hint: "%10 zam" },
@@ -34,7 +34,7 @@ const PRICE_MODES = [
 
 export function CatalogPro() {
   return (
-    <AdminShell
+    <AdminScreen
       title="Katalog Pro"
       description="Toplu içe aktarma ve fiyat işlemleri. Her işlem önce önizlenir, sonra onaylanır."
       breadcrumb={[{ label: "Katalog Pro" }]}
@@ -43,7 +43,7 @@ export function CatalogPro() {
         <ImportPanel />
         <PricePanel />
       </div>
-    </AdminShell>
+    </AdminScreen>
   );
 }
 

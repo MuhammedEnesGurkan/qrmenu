@@ -4,7 +4,7 @@ export { Badge } from "./badge";
 export type { BadgeTone } from "./badge";
 export { Card, CardHeader, StatCard } from "./card";
 export { Checkbox, FormField, Input, Select, Switch, Textarea } from "./field";
-export { ConfirmDialog, Dialog, Sheet, useConfirm } from "./overlay";
+export { ConfirmDialog, Dialog, Drawer, Sheet, useConfirm } from "./overlay";
 export { SegmentedControl, Tabs } from "./tabs";
 export type { TabItem } from "./tabs";
 export { DropdownMenu } from "./dropdown-menu";

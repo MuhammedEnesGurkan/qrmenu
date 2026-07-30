@@ -28,7 +28,14 @@ import { StatCard } from "@/components/ui/card";
 import { Tabs } from "@/components/ui/tabs";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
-import { AdminShell, useAdmin } from "../admin/admin-shell";
+import {
+  AnimatedTabPanel,
+  SkeletonTransition,
+  StaggerItem,
+  StaggerList,
+  SuccessCheck,
+} from "@/components/motion";
+import { AdminScreen, useAdmin } from "../admin/admin-shell";
 import { useResource } from "../admin/use-resource";
 
 const OPEN_STATES = [
@@ -106,13 +113,13 @@ function nextStates(order: Order): string[] {
 
 export function WaiterPanel() {
   return (
-    <AdminShell
+    <AdminScreen
       title="Garson paneli"
       description="Masalarındaki açık siparişleri ve misafir taleplerini buradan yönet."
       breadcrumb={[{ label: "Garson paneli" }]}
     >
       <WaiterBody />
-    </AdminShell>
+    </AdminScreen>
   );
 }
 
@@ -140,7 +147,7 @@ function WaiterBody() {
       ]),
     [],
   );
-  const { data, error, loading, reload } = useResource(loader);
+  const { data, error, reload } = useResource(loader);
 
   // Canlı akış; bağlantı düşerse 15 saniyelik yedek tazeleme devreye girer.
   useEffect(() => {
@@ -262,25 +269,25 @@ function WaiterBody() {
     }
   }
 
-  if (loading && !data) {
-    return (
-      <div role="status" aria-live="polite" className="grid gap-4">
-        <span className="sr-only">Garson paneli yükleniyor…</span>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {Array.from({ length: 3 }, (_, index) => (
-            <Skeleton key={index} className="h-24 w-full rounded-xl" />
-          ))}
-        </div>
-        <Skeleton className="h-11 w-full rounded-lg" />
-        {Array.from({ length: 4 }, (_, index) => (
-          <Skeleton key={index} className="h-16 w-full rounded-xl" />
-        ))}
-      </div>
-    );
-  }
   if (error && !data) return <ErrorState message={error} onRetry={reload} />;
 
+  const skeleton = (
+    <div role="status" aria-live="polite" className="grid gap-4">
+      <span className="sr-only">Garson paneli yükleniyor…</span>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {Array.from({ length: 3 }, (_, index) => (
+          <Skeleton key={index} className="h-24 w-full rounded-xl" />
+        ))}
+      </div>
+      <Skeleton className="h-11 w-full rounded-lg" />
+      {Array.from({ length: 4 }, (_, index) => (
+        <Skeleton key={index} className="h-16 w-full rounded-xl" />
+      ))}
+    </div>
+  );
+
   return (
+    <SkeletonTransition loading={!data} skeleton={skeleton}>
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] xl:items-start">
       <div className="grid gap-4">
         <div className="grid gap-3 sm:grid-cols-3">
@@ -327,8 +334,9 @@ function WaiterBody() {
             description="Yeni bir sipariş ya da çağrı geldiğinde bu liste kendiliğinden güncellenir."
           />
         ) : (
-          <ul className="grid gap-2">
-            {visible.map((row) => {
+          /* Filtre değişince kalan masalar kayar, ayrılanlar kısa bir çıkışla gider. */
+          <StaggerList as="ul" className="grid gap-2">
+            {visible.map((row, index) => {
               const active = selected?.key === row.key;
               const total = row.orders.reduce(
                 (sum, order) => sum + order.estimatedTotal,
@@ -342,13 +350,14 @@ function WaiterBody() {
                 null,
               );
               return (
-                <li key={row.key}>
+                <StaggerItem as="li" key={row.key} index={index}>
                   <button
                     type="button"
                     onClick={() => setSelectedTable(row.key)}
                     aria-pressed={active}
                     className={cn(
-                      "flex min-h-16 w-full min-w-0 items-center gap-3 rounded-xl border px-3.5 text-left transition sm:px-4",
+                      "flex min-h-16 w-full min-w-0 items-center gap-3 rounded-xl border px-3.5 text-left sm:px-4",
+                      "transition duration-150 ease-out active:scale-[0.99]",
                       active
                         ? "border-primary bg-primary-soft/60"
                         : "border-border bg-surface hover:border-primary/40",
@@ -398,16 +407,22 @@ function WaiterBody() {
                       </span>
                     )}
                   </button>
-                </li>
+                </StaggerItem>
               );
             })}
-          </ul>
+          </StaggerList>
         )}
       </div>
 
       {/* Seçili masa: tek elle basılabilecek büyük aksiyonlar */}
       <div className="xl:sticky xl:top-24">
         {selected ? (
+          /*
+           * Masa değişince panel yerinde takas edilmez, kısa bir yönlü geçiş
+           * yapar — garson hangi masaya baktığını kaybetmez. 160ms: elin
+           * altındaki his kadar hızlı.
+           */
+          <AnimatedTabPanel value={selected.key}>
           <section
             aria-label={`${selected.name} işlemleri`}
             className="rounded-2xl border border-border bg-surface p-4 shadow-xs sm:p-5"
@@ -476,7 +491,7 @@ function WaiterBody() {
                               className="bg-accent text-primary-fg hover:brightness-110"
                               icon={BellRing}
                               busy={pendingId === call.id}
-                              onClick={() => void updateCall(call, "ACKNOWLEDGED")}
+                              onClick={() => updateCall(call, "ACKNOWLEDGED")}
                             >
                               Üstlen
                             </ActionButton>
@@ -487,7 +502,7 @@ function WaiterBody() {
                             className="bg-success text-primary-fg hover:brightness-110"
                             icon={CheckCheck}
                             busy={pendingId === call.id}
-                            onClick={() => void updateCall(call, "RESOLVED")}
+                            onClick={() => updateCall(call, "RESOLVED")}
                           >
                             Çözüldü
                           </ActionButton>
@@ -573,7 +588,7 @@ function WaiterBody() {
                                 className={style.className}
                                 icon={style.icon}
                                 busy={pendingId === order.id}
-                                onClick={() => void transition(order, next)}
+                                onClick={() => transition(order, next)}
                               >
                                 {style.label ??
                                   describe(ORDER_STATES, next).label}
@@ -593,13 +608,22 @@ function WaiterBody() {
               yapılmaz.
             </p>
           </section>
+          </AnimatedTabPanel>
         ) : null}
       </div>
     </div>
+    </SkeletonTransition>
   );
 }
 
-/** Tek elle basılabilecek, 56px yüksekliğinde dolu renkli aksiyon. */
+/**
+ * Tek elle basılabilecek, 56px yüksekliğinde dolu renkli aksiyon.
+ *
+ * Garson panelinde animasyon hız içindir, süs için değil: basma geri bildirimi
+ * CSS transform ile anında verilir, işlem bitince ikon kısa bir onay işaretine
+ * döner. Uzun ya da bloklayan bir animasyon yok — buton işlemi beklemez,
+ * sonucu gösterir.
+ */
 function ActionButton({
   className,
   icon: Icon,
@@ -610,22 +634,38 @@ function ActionButton({
   className: string;
   icon: typeof CheckCheck;
   busy: boolean;
-  onClick: () => void;
+  onClick: () => Promise<void> | void;
   children: React.ReactNode;
 }) {
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    if (!done) return;
+    const timer = setTimeout(() => setDone(false), 900);
+    return () => clearTimeout(timer);
+  }, [done]);
+
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={async () => {
+        await onClick();
+        setDone(true);
+      }}
       disabled={busy}
       className={cn(
-        "flex min-h-14 min-w-0 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold transition",
+        "flex min-h-14 min-w-0 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold",
+        "transition duration-150 ease-out active:scale-[0.96]",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-        "disabled:pointer-events-none disabled:opacity-60",
+        "disabled:pointer-events-none disabled:opacity-60 disabled:active:scale-100",
         className,
       )}
     >
-      <Icon size={18} aria-hidden="true" className="shrink-0" />
+      {done ? (
+        <SuccessCheck className="size-[18px] shrink-0" />
+      ) : (
+        <Icon size={18} aria-hidden="true" className="shrink-0" />
+      )}
       <span className="min-w-0 truncate">{children}</span>
     </button>
   );

@@ -1,5 +1,9 @@
+"use client";
+
+import Link from "next/link";
 import type { ElementType, ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { AnimatedCounter } from "@/components/motion";
 
 export function Card({
   as: Tag = "section",
@@ -93,7 +97,8 @@ export function StatCard({
         ) : null}
       </div>
       <p className="mt-2 text-2xl font-semibold tabular-nums tracking-[-0.02em] text-fg">
-        {value}
+        {/* Sayısal değerler yenilemede sıçramak yerine yeni değere yürür. */}
+        {typeof value === "number" ? <AnimatedCounter value={value} /> : value}
       </p>
       {hint ? <p className="mt-1 text-xs text-muted">{hint}</p> : null}
     </>
@@ -102,13 +107,16 @@ export function StatCard({
   const className = cn(
     "block rounded-2xl border border-border bg-surface p-4 shadow-xs",
     toneRing,
-    href && "transition hover:border-primary/40 hover:shadow-sm",
+    href &&
+      "transition duration-150 hover:border-primary/40 hover:shadow-sm active:scale-[0.99]",
   );
 
+  // Link: tam sayfa yeniden yükleme yerine istemci geçişi — sayfa animasyonu
+  // ancak bu şekilde çalışır.
   return href ? (
-    <a href={href} className={className}>
+    <Link href={href} className={className}>
       {body}
-    </a>
+    </Link>
   ) : (
     <div className={className}>{body}</div>
   );

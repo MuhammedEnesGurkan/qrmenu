@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import {
   Bell,
@@ -30,7 +31,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, StatCard } from "@/components/ui/card";
 import { ConfirmDialog, useConfirm } from "@/components/ui/overlay";
 import { Alert, EmptyState, ErrorState, Skeleton } from "@/components/ui/states";
-import { AdminShell, useAdmin } from "./admin-shell";
+import {
+  AnimatePresence,
+  SkeletonTransition,
+  StaggerItem,
+  StaggerList,
+} from "@/components/motion";
+import { AdminScreen, useAdmin } from "./admin-shell";
 import { useAction, useResource } from "./use-resource";
 
 type OverviewData = {
@@ -43,19 +50,18 @@ type OverviewData = {
 
 export function AdminOverview() {
   return (
-    <AdminShell
+    <AdminScreen
       title="Yönetim paneli"
       description="Restoranının genel durumunu buradan takip et."
     >
       <OverviewBody />
-    </AdminShell>
+    </AdminScreen>
   );
 }
 
 function OverviewBody() {
   const { user } = useAdmin();
   const canManageStaff = user.permissions.includes("membership/manage");
-  const canWrite = user.permissions.includes("catalog/write");
 
   const loader = useCallback(async (): Promise<OverviewData> => {
     const [catalog, addons, staff, orders, calls] = await Promise.all([
@@ -70,13 +76,35 @@ function OverviewBody() {
     return { catalog, addons, staff, orders, calls };
   }, [canManageStaff]);
 
-  const { data, error, loading, reload } = useResource(loader);
+  const { data, error, reload } = useResource(loader);
+
+  if (error && !data) return <ErrorState message={error} onRetry={reload} />;
+
+  /*
+   * Skeleton ve gerçek içerik aynı AnimatePresence içinde yaşar: biri
+   * solarken diğeri belirir, arada beyaz kare olmaz. Yenilemede (data varken
+   * loading true) skeleton'a geri dönülmez, yalnız ilk yüklemede gösterilir.
+   */
+  return (
+    <SkeletonTransition loading={!data} skeleton={<OverviewSkeleton />}>
+      {data ? <OverviewContent data={data} reload={reload} /> : null}
+    </SkeletonTransition>
+  );
+}
+
+function OverviewContent({
+  data,
+  reload,
+}: {
+  data: OverviewData;
+  reload: () => Promise<void>;
+}) {
+  const router = useRouter();
+  const { user } = useAdmin();
+  const canManageStaff = user.permissions.includes("membership/manage");
+  const canWrite = user.permissions.includes("catalog/write");
   const { busy, run } = useAction(reload);
   const publishConfirm = useConfirm<true>();
-
-  if (loading && !data) return <OverviewSkeleton />;
-  if (error && !data) return <ErrorState message={error} onRetry={reload} />;
-  if (!data) return null;
 
   const { catalog, addons, staff, orders, calls } = data;
   const products = catalog.categories.flatMap((category) => category.products);
@@ -176,38 +204,48 @@ function OverviewBody() {
         </div>
       </Card>
 
-      {/* Sayısal özet */}
-      <section aria-label="Özet göstergeler" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="Kategori"
-          value={catalog.categories.length}
-          hint={`${catalog.categories.filter((c) => c.active).length} aktif`}
-          icon={<FolderTree size={16} />}
-          href="/admin/menu"
-        />
-        <StatCard
-          label="Ürün"
-          value={products.length}
-          hint={`${products.length - soldOut} mevcut`}
-          icon={<UtensilsCrossed size={16} />}
-          href="/admin/menu"
-        />
-        <StatCard
-          label="Tükenen ürün"
-          value={soldOut}
-          hint={soldOut > 0 ? "Menüde tükendi görünüyor" : "Tümü mevcut"}
-          tone={soldOut > 0 ? "warning" : "neutral"}
-          icon={<PackageX size={16} />}
-          href="/admin/menu"
-        />
-        <StatCard
-          label="Açık sipariş"
-          value={openOrders.length}
-          hint={`${openCalls.length} garson çağrısı`}
-          tone={openOrders.length > 0 ? "primary" : "neutral"}
-          icon={<Receipt size={16} />}
-          href="/admin/siparisler"
-        />
+      {/* Sayısal özet — kartlar hafif bir gecikmeyle sırayla girer. */}
+      <section
+        aria-label="Özet göstergeler"
+        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+      >
+        {[
+          {
+            label: "Kategori",
+            value: catalog.categories.length,
+            hint: `${catalog.categories.filter((c) => c.active).length} aktif`,
+            icon: <FolderTree size={16} />,
+            href: "/admin/menu",
+          },
+          {
+            label: "Ürün",
+            value: products.length,
+            hint: `${products.length - soldOut} mevcut`,
+            icon: <UtensilsCrossed size={16} />,
+            href: "/admin/menu",
+          },
+          {
+            label: "Tükenen ürün",
+            value: soldOut,
+            hint: soldOut > 0 ? "Menüde tükendi görünüyor" : "Tümü mevcut",
+            tone: soldOut > 0 ? ("warning" as const) : ("neutral" as const),
+            icon: <PackageX size={16} />,
+            href: "/admin/menu",
+          },
+          {
+            label: "Açık sipariş",
+            value: openOrders.length,
+            hint: `${openCalls.length} garson çağrısı`,
+            tone:
+              openOrders.length > 0 ? ("primary" as const) : ("neutral" as const),
+            icon: <Receipt size={16} />,
+            href: "/admin/siparisler",
+          },
+        ].map((stat, index) => (
+          <StaggerItem key={stat.label} index={index} layout={false}>
+            <StatCard {...stat} />
+          </StaggerItem>
+        ))}
       </section>
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
@@ -229,40 +267,47 @@ function OverviewBody() {
                 title="Henüz sipariş yok"
                 description="Masa siparişi eklentisi etkinleştirildiğinde ve masalara QR yerleştirildiğinde siparişler burada görünür."
                 action={
-                  <Button variant="outline" onClick={() => window.location.assign("/admin/masalar")}>
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push("/admin/masalar")}
+                  >
                     Masaları yönet
                   </Button>
                 }
               />
             ) : (
-              <ul className="grid gap-2">
-                {orders.slice(0, 5).map((order) => {
-                  const state = describe(ORDER_STATES, order.state);
-                  return (
-                    <li
-                      key={order.id}
-                      className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl border border-border px-3 py-2.5"
-                    >
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-fg">
-                        {order.pickupNumber
-                          ? `Teslim no ${order.pickupNumber}`
-                          : (order.tableName ?? "Self servis")}
-                      </span>
-                      <span className="shrink-0 text-sm tabular-nums text-muted">
-                        {formatMoney(order.estimatedTotal, order.currency)}
-                      </span>
-                      <Badge tone={state.tone} icon={state.icon}>
-                        {state.label}
-                      </Badge>
-                      {order.submittedAt ? (
-                        <span className="shrink-0 text-xs tabular-nums text-muted">
-                          {elapsedLabel(order.submittedAt)}
+              <StaggerList as="ul" className="grid gap-2">
+                <AnimatePresence initial={false}>
+                  {orders.slice(0, 5).map((order, index) => {
+                    const state = describe(ORDER_STATES, order.state);
+                    return (
+                      <StaggerItem
+                        as="li"
+                        key={order.id}
+                        index={index}
+                        className="flex min-w-0 flex-wrap items-center gap-3 rounded-xl border border-border px-3 py-2.5"
+                      >
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-fg">
+                          {order.pickupNumber
+                            ? `Teslim no ${order.pickupNumber}`
+                            : (order.tableName ?? "Self servis")}
                         </span>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
+                        <span className="shrink-0 text-sm tabular-nums text-muted">
+                          {formatMoney(order.estimatedTotal, order.currency)}
+                        </span>
+                        <Badge tone={state.tone} icon={state.icon}>
+                          {state.label}
+                        </Badge>
+                        {order.submittedAt ? (
+                          <span className="shrink-0 text-xs tabular-nums text-muted">
+                            {elapsedLabel(order.submittedAt)}
+                          </span>
+                        ) : null}
+                      </StaggerItem>
+                    );
+                  })}
+                </AnimatePresence>
+              </StaggerList>
             )}
           </div>
         </Card>
@@ -302,7 +347,7 @@ function OverviewBody() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => window.location.assign("/admin/eklentiler")}
+                    onClick={() => router.push("/admin/eklentiler")}
                   >
                     Yönet
                   </Button>

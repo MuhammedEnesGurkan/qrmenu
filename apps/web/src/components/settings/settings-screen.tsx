@@ -12,7 +12,8 @@ import { Dialog } from "@/components/ui/overlay";
 import { Tabs } from "@/components/ui/tabs";
 import { Alert, ErrorState, Skeleton } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
-import { AdminShell, useAdmin } from "../admin/admin-shell";
+import { AnimatedTabPanel } from "@/components/motion";
+import { AdminScreen, useAdmin } from "../admin/admin-shell";
 import { useAction, useResource } from "../admin/use-resource";
 import { BrandingTab } from "./branding-tab";
 import { TranslationsTab } from "./translations-tab";
@@ -25,13 +26,13 @@ const TABS = [
 
 export function SettingsScreen() {
   return (
-    <AdminShell
+    <AdminScreen
       title="Ayarlar"
       description="Şube, marka ve dil ayarları. Bir eklenti kapalıysa ilgili işlem sunucu tarafında engellenir."
       breadcrumb={[{ label: "Ayarlar" }]}
     >
       <SettingsBody />
-    </AdminShell>
+    </AdminScreen>
   );
 }
 
@@ -79,25 +80,36 @@ function SettingsBody() {
         items={TABS}
       />
 
-      {active === "subeler" ? (
-        <BranchesTab settings={settings} reload={reload} isOwner={user.role === "OWNER"} />
-      ) : null}
-      {active === "marka" ? (
-        <BrandingTab
-          branding={settings.branding}
-          catalog={catalog}
-          canWrite={canWrite}
-          onSaved={reload}
-        />
-      ) : null}
-      {active === "diller" ? (
-        <TranslationsTab
-          settings={settings}
-          catalog={catalog}
-          canWrite={canWrite}
-          onSaved={reload}
-        />
-      ) : null}
+      {/*
+        Sekme içeriği kısa bir fade + yatay kayma ile değişir. `mode="wait"`
+        olduğu için iki panel asla aynı anda görünmez; hızlı art arda
+        tıklamada motion son değere yönelir, animasyon bozulmaz.
+      */}
+      <AnimatedTabPanel value={active}>
+        {active === "subeler" ? (
+          <BranchesTab
+            settings={settings}
+            reload={reload}
+            isOwner={user.role === "OWNER"}
+          />
+        ) : null}
+        {active === "marka" ? (
+          <BrandingTab
+            branding={settings.branding}
+            catalog={catalog}
+            canWrite={canWrite}
+            onSaved={reload}
+          />
+        ) : null}
+        {active === "diller" ? (
+          <TranslationsTab
+            settings={settings}
+            catalog={catalog}
+            canWrite={canWrite}
+            onSaved={reload}
+          />
+        ) : null}
+      </AnimatedTabPanel>
     </div>
   );
 }
@@ -187,9 +199,9 @@ function BranchesTab({
         </ul>
       </Card>
 
-      {open ? (
+      {/* `open` prop'u: kapanış animasyonu tamamlanmadan DOM'dan çıkmaz. */}
         <Dialog
-          open
+          open={open}
           onClose={() => setOpen(false)}
           size="sm"
           title="Yeni şube"
@@ -228,7 +240,6 @@ function BranchesTab({
             </FormField>
           </form>
         </Dialog>
-      ) : null}
     </div>
   );
 }

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog, useConfirm } from "@/components/ui/overlay";
 import { Alert, ErrorState, Skeleton } from "@/components/ui/states";
-import { AdminShell } from "./admin-shell";
+import { AdminScreen } from "./admin-shell";
 import { useAction, useResource } from "./use-resource";
 
 const dateFormat = new Intl.DateTimeFormat("tr-TR", {
@@ -27,13 +27,13 @@ function formatDate(value: string | null) {
 
 export function AddonStore() {
   return (
-    <AdminShell
+    <AdminScreen
       title="Eklentiler"
       description="QR menü her zaman ücretsizdir. Operasyon özellikleri ihtiyaç oldukça açılır."
       breadcrumb={[{ label: "Eklentiler" }]}
     >
       <AddonBody />
-    </AdminShell>
+    </AdminScreen>
   );
 }
 

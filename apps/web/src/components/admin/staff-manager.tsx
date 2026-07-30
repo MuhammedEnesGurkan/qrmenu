@@ -11,45 +11,51 @@ import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { FormField, Input, Select } from "@/components/ui/field";
 import { ConfirmDialog, Dialog, useConfirm } from "@/components/ui/overlay";
 import { Alert, EmptyState, ErrorState, Skeleton } from "@/components/ui/states";
-import { AdminShell, useAdmin } from "./admin-shell";
+import {
+  AnimatePresence,
+  SkeletonTransition,
+  StaggerItem,
+  StaggerList,
+} from "@/components/motion";
+import { AdminScreen, useAdmin } from "./admin-shell";
 import { useAction, useResource } from "./use-resource";
 
 export function StaffManager() {
   return (
-    <AdminShell
+    <AdminScreen
       title="Personel ve roller"
       description="Her kullanıcı yalnızca görevine gereken izinleri alır. Rol sınırları sunucuda denetlenir."
       breadcrumb={[{ label: "Personel" }]}
     >
       <StaffBody />
-    </AdminShell>
+    </AdminScreen>
   );
 }
 
 function StaffBody() {
   const { user } = useAdmin();
   const loader = useCallback(() => api<Staff[]>("/api/admin/staff"), []);
-  const { data, error, loading, reload } = useResource(loader);
+  const { data, error, reload } = useResource(loader);
   const { busy, run } = useAction(reload);
   const [createOpen, setCreateOpen] = useState(false);
   const [formError, setFormError] = useState("");
   const deactivate = useConfirm<Staff>();
 
-  if (loading && !data) {
-    return (
-      <div role="status" aria-live="polite" className="grid gap-3">
-        <span className="sr-only">Personel listesi yükleniyor…</span>
-        {Array.from({ length: 4 }, (_, index) => (
-          <Skeleton key={index} className="h-20 w-full rounded-2xl" />
-        ))}
-      </div>
-    );
-  }
   if (error && !data) return <ErrorState message={error} onRetry={reload} />;
   const staff = data ?? [];
   const active = staff.filter((person) => person.active);
 
+  const skeleton = (
+    <div role="status" aria-live="polite" className="grid gap-3">
+      <span className="sr-only">Personel listesi yükleniyor…</span>
+      {Array.from({ length: 4 }, (_, index) => (
+        <Skeleton key={index} className="h-20 w-full rounded-2xl" />
+      ))}
+    </div>
+  );
+
   return (
+    <SkeletonTransition loading={!data} skeleton={skeleton}>
     <div className="grid gap-6">
       <Card>
         <CardHeader
@@ -79,12 +85,16 @@ function StaffBody() {
           }
         />
       ) : (
-        <ul className="grid gap-3">
-          {staff.map((person) => {
+        /* Rol/durum değişince kart yerinde erir; listeden çıkan çıkışını tamamlar. */
+        <StaggerList as="ul" className="grid gap-3">
+          <AnimatePresence initial={false} mode="popLayout">
+          {staff.map((person, index) => {
             const self = person.id === user.userId;
             return (
-              <li
+              <StaggerItem
+                as="li"
                 key={person.id}
+                index={index}
                 className="flex min-w-0 flex-wrap items-center gap-3 rounded-2xl border border-border bg-surface p-4 shadow-xs"
               >
                 <span
@@ -160,15 +170,16 @@ function StaffBody() {
                     ]}
                   />
                 ) : null}
-              </li>
+              </StaggerItem>
             );
           })}
-        </ul>
+          </AnimatePresence>
+        </StaggerList>
       )}
 
-      {createOpen ? (
+      {/* `open` prop'u: kapanış animasyonu tamamlanmadan DOM'dan çıkmaz. */}
         <Dialog
-          open
+          open={createOpen}
           onClose={() => setCreateOpen(false)}
           title="Personel ekle"
           description="Geçici parolayı personelle güvenli bir kanaldan paylaş."
@@ -256,7 +267,6 @@ function StaffBody() {
             </FormField>
           </form>
         </Dialog>
-      ) : null}
 
       <ConfirmDialog
         open={deactivate.open}
@@ -280,5 +290,6 @@ function StaffBody() {
         }}
       />
     </div>
+    </SkeletonTransition>
   );
 }

@@ -7,9 +7,15 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useState,
   type ReactNode,
 } from "react";
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+} from "motion/react";
 import {
   Bell,
   Building2,
@@ -28,8 +34,10 @@ import {
   type WaiterCall,
 } from "@/lib/admin-api";
 import { STAFF_ROLES } from "@/lib/labels";
+import { reducedTween, spring, tween } from "@/lib/motion";
+import { PageTransition } from "@/components/motion";
 import { BrandLockup, BrandMark } from "@/components/landing/brand-mark";
-import { Breadcrumb, PageHeader, type Crumb } from "@/components/ui/page-header";
+import { PageHeader, type Crumb } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/states";
 import { MOBILE_TABS, MORE_TAB, isActive, visibleGroups } from "./nav";
 
@@ -63,22 +71,15 @@ const OPEN_ORDER_STATES = [
   "SERVING",
 ];
 
-export function AdminShell({
-  title,
-  description,
-  breadcrumb = [],
-  actions,
-  contained = true,
-  children,
-}: {
-  title: string;
-  description?: ReactNode;
-  breadcrumb?: Crumb[];
-  actions?: ReactNode;
-  /** false ise sayfa kendi genişliğini yönetir (kanban/mutfak gibi geniş ekranlar). */
-  contained?: boolean;
-  children: ReactNode;
-}) {
+/**
+ * Yönetim kabuğu. `app/admin/layout.tsx` tarafından bir kez kurulur ve rota
+ * değişimlerinde yerinde kalır — sidebar, üst bar ve alt navigasyon yeniden
+ * mount edilmez, dolayısıyla gereksiz yere yeniden animasyon almaz ve
+ * oturum bilgisi her gezinmede yeniden çekilmez.
+ *
+ * Sayfa başlığını ve içerik kabını `AdminScreen` sağlar.
+ */
+export function AdminShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -86,6 +87,8 @@ export function AdminShell({
   const [counters, setCounters] = useState<Counters>({ orders: 0, calls: 0 });
   const [failure, setFailure] = useState("");
   const [navOpen, setNavOpen] = useState(false);
+  const reduced = useReducedMotion();
+  const tabIndicatorId = useId();
 
   const reloadShell = useCallback(async () => {
     try {
@@ -164,7 +167,8 @@ export function AdminShell({
                     href={item.href}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium transition",
+                      "flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium",
+                      "transition-colors duration-150",
                       active
                         ? "bg-primary-soft text-primary"
                         : "text-fg-soft hover:bg-sunken hover:text-fg",
@@ -176,6 +180,7 @@ export function AdminShell({
                       <span
                         className={cn(
                           "type-chit shrink-0 rounded-full px-1.5 py-0.5 text-[0.68rem] font-semibold",
+                          "transition-colors duration-150",
                           active
                             ? "bg-primary text-primary-fg"
                             : "bg-primary-soft text-primary",
@@ -200,7 +205,7 @@ export function AdminShell({
       {canWrite ? (
         <Link
           href="/admin/menu?yeni=urun"
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-fg shadow-xs transition hover:bg-primary-hover"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-fg shadow-xs transition duration-150 hover:bg-primary-hover active:scale-[0.97]"
         >
           <Plus size={16} aria-hidden="true" />
           Yeni ürün ekle
@@ -208,7 +213,7 @@ export function AdminShell({
       ) : null}
       <Link
         href="/admin/masalar"
-        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 text-sm font-semibold text-fg-soft transition hover:border-primary/40 hover:text-primary"
+        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-surface px-4 text-sm font-semibold text-fg-soft transition duration-150 hover:border-primary/40 hover:text-primary active:scale-[0.97]"
       >
         <QrCode size={16} aria-hidden="true" />
         QR oluştur
@@ -217,9 +222,7 @@ export function AdminShell({
   );
 
   return (
-    <AdminContext.Provider
-      value={{ user, branches, counters, reloadShell }}
-    >
+    <AdminContext.Provider value={{ user, branches, counters, reloadShell }}>
       <div className="min-h-dvh lg:grid lg:grid-cols-[15.5rem_1fr]">
         {/* Masaüstü sidebar */}
         <aside className="sticky top-0 hidden h-dvh flex-col border-r border-border bg-surface lg:flex">
@@ -238,7 +241,7 @@ export function AdminShell({
             <button
               type="button"
               onClick={logout}
-              className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-fg-soft transition hover:bg-sunken hover:text-destructive"
+              className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-fg-soft transition duration-150 hover:bg-sunken hover:text-destructive"
             >
               <LogOut size={18} aria-hidden="true" />
               Çıkış yap
@@ -272,14 +275,22 @@ export function AdminShell({
                 <Link
                   href="/admin/siparisler"
                   aria-label={`Bildirimler: ${counters.calls} bekleyen garson çağrısı`}
-                  className="relative grid size-11 place-items-center rounded-lg border border-border text-fg-soft transition hover:border-primary/40 hover:text-primary"
+                  className="relative grid size-11 place-items-center rounded-lg border border-border text-fg-soft transition duration-150 hover:border-primary/40 hover:text-primary active:scale-[0.95]"
                 >
                   <Bell size={18} aria-hidden="true" />
-                  {counters.calls > 0 ? (
-                    <span className="type-chit absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-primary px-1 text-[0.65rem] font-semibold text-primary-fg">
-                      {counters.calls}
-                    </span>
-                  ) : null}
+                  <AnimatePresence>
+                    {counters.calls > 0 ? (
+                      <motion.span
+                        initial={reduced ? { opacity: 0 } : { scale: 0.4, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={reduced ? { opacity: 0 } : { scale: 0.4, opacity: 0 }}
+                        transition={reduced ? reducedTween : spring.indicator}
+                        className="type-chit absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-primary px-1 text-[0.65rem] font-semibold text-primary-fg"
+                      >
+                        {counters.calls}
+                      </motion.span>
+                    ) : null}
+                  </AnimatePresence>
                 </Link>
 
                 <div className="hidden text-right sm:block">
@@ -300,25 +311,15 @@ export function AdminShell({
             </div>
           </header>
 
+          {/*
+           * pb-24: mobil alt tab barın içeriği kapatmaması için.
+           * Geçiş yalnız buradaki içerikte olur; kabuk sabit kalır.
+           */}
           <main
             id="main"
-            className={cn(
-              // pb-24: mobil alt tab barın içeriği kapatmaması için
-              "min-w-0 flex-1 px-4 pb-24 pt-6 sm:px-6 sm:pt-8 lg:pb-10",
-              contained && "mx-auto w-full max-w-[86rem]",
-            )}
+            className="min-w-0 flex-1 px-4 pb-24 pt-6 sm:px-6 sm:pt-8 lg:pb-10"
           >
-            <PageHeader
-              title={title}
-              description={description}
-              breadcrumb={
-                breadcrumb.length > 0
-                  ? [{ label: "Yönetim", href: "/admin" }, ...breadcrumb]
-                  : undefined
-              }
-              actions={actions}
-            />
-            <div className="mt-6">{children}</div>
+            <PageTransition>{children}</PageTransition>
           </main>
         </div>
 
@@ -337,11 +338,21 @@ export function AdminShell({
                     href={item.href}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[0.68rem] font-medium transition",
+                      "relative flex min-h-14 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[0.68rem] font-medium",
+                      "transition-colors duration-150",
                       active ? "text-primary" : "text-muted",
                     )}
                   >
-                    <span className="relative">
+                    {/* Aktif gösterge sekmeler arasında kayar, yeniden belirmez. */}
+                    {active ? (
+                      <motion.span
+                        aria-hidden="true"
+                        layoutId={reduced ? undefined : `bottom-tab-${tabIndicatorId}`}
+                        transition={spring.indicator}
+                        className="absolute inset-x-1 inset-y-0.5 rounded-lg bg-primary-soft"
+                      />
+                    ) : null}
+                    <span className="relative transition-transform duration-150 active:scale-[0.94]">
                       <item.icon size={20} aria-hidden="true" />
                       {count ? (
                         <span className="type-chit absolute -right-2.5 -top-1.5 grid min-w-4 place-items-center rounded-full bg-primary px-1 text-[0.6rem] font-semibold text-primary-fg">
@@ -349,7 +360,9 @@ export function AdminShell({
                         </span>
                       ) : null}
                     </span>
-                    <span className="max-w-full truncate">{item.label}</span>
+                    <span className="relative max-w-full truncate">
+                      {item.label}
+                    </span>
                   </Link>
                 </li>
               );
@@ -359,7 +372,7 @@ export function AdminShell({
                 type="button"
                 onClick={() => setNavOpen(true)}
                 aria-expanded={navOpen}
-                className="flex min-h-14 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 text-[0.68rem] font-medium text-muted"
+                className="flex min-h-14 w-full flex-col items-center justify-center gap-1 rounded-lg px-1 text-[0.68rem] font-medium text-muted transition-transform duration-150 active:scale-[0.94]"
               >
                 <MORE_TAB.icon size={20} aria-hidden="true" />
                 <span className="max-w-full truncate">{MORE_TAB.label}</span>
@@ -369,49 +382,98 @@ export function AdminShell({
         </nav>
 
         {/* "Daha fazla" çekmecesi */}
-        {navOpen ? (
-          <div
-            className="fixed inset-0 z-50 flex items-end bg-inverse/50 lg:hidden"
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget) setNavOpen(false);
-            }}
-          >
-            <div className="animate-fade-up flex max-h-[85dvh] w-full flex-col rounded-t-2xl bg-surface shadow-overlay">
-              <div className="flex min-h-14 items-center justify-between gap-2 border-b border-border px-4">
-                <span className="text-sm font-semibold text-fg">
-                  Tüm bölümler
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setNavOpen(false)}
-                  aria-label="Kapat"
-                  autoFocus
-                  className="grid size-11 place-items-center rounded-lg text-fg-soft"
-                >
-                  <X size={20} aria-hidden="true" />
-                </button>
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-                {navList}
-                <div className="mt-5 border-t border-border pt-4">
-                  {sidebarActions}
+        <AnimatePresence>
+          {navOpen ? (
+            <motion.div
+              className="fixed inset-0 z-50 flex items-end bg-inverse/50 lg:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={reduced ? reducedTween : tween.fast}
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) setNavOpen(false);
+              }}
+            >
+              <motion.div
+                initial={reduced ? { opacity: 0 } : { y: "100%" }}
+                animate={reduced ? { opacity: 1 } : { y: 0 }}
+                exit={reduced ? { opacity: 0 } : { y: "100%" }}
+                transition={reduced ? reducedTween : spring.surface}
+                className="flex max-h-[85dvh] w-full flex-col rounded-t-2xl bg-surface shadow-overlay"
+              >
+                <div className="flex min-h-14 items-center justify-between gap-2 border-b border-border px-4">
+                  <span className="text-sm font-semibold text-fg">
+                    Tüm bölümler
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setNavOpen(false)}
+                    aria-label="Kapat"
+                    autoFocus
+                    className="grid size-11 place-items-center rounded-lg text-fg-soft"
+                  >
+                    <X size={20} aria-hidden="true" />
+                  </button>
                 </div>
-              </div>
-              <div className="safe-bottom border-t border-border p-3">
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-destructive"
-                >
-                  <LogOut size={18} aria-hidden="true" />
-                  Çıkış yap
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
+                <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+                  {navList}
+                  <div className="mt-5 border-t border-border pt-4">
+                    {sidebarActions}
+                  </div>
+                </div>
+                <div className="safe-bottom border-t border-border p-3">
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-destructive"
+                  >
+                    <LogOut size={18} aria-hidden="true" />
+                    Çıkış yap
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </div>
     </AdminContext.Provider>
+  );
+}
+
+/**
+ * Tek bir yönetim ekranı: başlık bloğu ve içerik kabı. Kabuğun içinde,
+ * sayfa geçişinin animasyon alanında yaşar.
+ */
+export function AdminScreen({
+  title,
+  description,
+  breadcrumb = [],
+  actions,
+  contained = true,
+  children,
+}: {
+  title: string;
+  description?: ReactNode;
+  breadcrumb?: Crumb[];
+  actions?: ReactNode;
+  /** false ise sayfa kendi genişliğini yönetir (kanban/mutfak gibi geniş ekranlar). */
+  contained?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className={cn(contained && "mx-auto w-full max-w-[86rem]")}>
+      <PageHeader
+        title={title}
+        description={description}
+        breadcrumb={
+          breadcrumb.length > 0
+            ? [{ label: "Yönetim", href: "/admin" }, ...breadcrumb]
+            : undefined
+        }
+        actions={actions}
+      />
+      <div className="mt-6">{children}</div>
+    </div>
   );
 }
 
@@ -426,6 +488,7 @@ function BranchSwitcher({
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const reduced = useReducedMotion();
 
   if (!canSwitch || branches.length < 2) {
     return (
@@ -456,40 +519,53 @@ function BranchSwitcher({
         aria-haspopup="listbox"
         aria-expanded={open}
         disabled={busy}
-        className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-3 text-sm font-medium text-fg-soft transition hover:border-primary/40"
+        className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-3 text-sm font-medium text-fg-soft transition duration-150 hover:border-primary/40"
       >
         <Building2 size={16} aria-hidden="true" className="text-muted" />
         <span className="max-w-28 truncate">{current.name}</span>
-        <ChevronDown size={14} aria-hidden="true" />
+        <ChevronDown
+          size={14}
+          aria-hidden="true"
+          className={cn(
+            "transition-transform duration-150",
+            open && "rotate-180",
+          )}
+        />
       </button>
-      {open ? (
-        <ul
-          role="listbox"
-          aria-label="Aktif şube"
-          className="animate-fade-up absolute right-0 z-40 mt-1 min-w-56 rounded-xl border border-border bg-surface p-1 shadow-lg"
-        >
-          {branches.map((branch) => (
-            <li key={branch.id}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={branch.current}
-                disabled={branch.current || busy}
-                onClick={() => void switchTo(branch.id)}
-                className={cn(
-                  "flex min-h-11 w-full items-center justify-between gap-2 rounded-lg px-3 text-left text-sm",
-                  branch.current
-                    ? "bg-primary-soft font-semibold text-primary"
-                    : "text-fg hover:bg-sunken",
-                )}
-              >
-                <span className="truncate">{branch.name}</span>
-                {branch.current ? <span aria-hidden="true">✓</span> : null}
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <AnimatePresence>
+        {open ? (
+          <motion.ul
+            role="listbox"
+            aria-label="Aktif şube"
+            initial={reduced ? { opacity: 0 } : { opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduced ? { opacity: 0 } : { opacity: 0, y: -4, scale: 0.98 }}
+            transition={reduced ? reducedTween : tween.fast}
+            className="absolute right-0 z-40 mt-1 min-w-56 origin-top-right rounded-xl border border-border bg-surface p-1 shadow-lg"
+          >
+            {branches.map((branch) => (
+              <li key={branch.id}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={branch.current}
+                  disabled={branch.current || busy}
+                  onClick={() => void switchTo(branch.id)}
+                  className={cn(
+                    "flex min-h-11 w-full items-center justify-between gap-2 rounded-lg px-3 text-left text-sm transition-colors duration-150",
+                    branch.current
+                      ? "bg-primary-soft font-semibold text-primary"
+                      : "text-fg hover:bg-sunken",
+                  )}
+                >
+                  <span className="truncate">{branch.name}</span>
+                  {branch.current ? <span aria-hidden="true">✓</span> : null}
+                </button>
+              </li>
+            ))}
+          </motion.ul>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

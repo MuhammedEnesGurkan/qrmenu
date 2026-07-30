@@ -10,9 +10,15 @@ export type ButtonVariant =
   | "inverse";
 export type ButtonSize = "sm" | "md" | "lg";
 
+/*
+ * Basma geri bildirimi CSS ile verilir: transform + opacity, ana iş parçacığı
+ * dışında çalışır ve prefers-reduced-motion küresel kuralı süreyi zaten
+ * sıfırlar. Bunun için JS animasyon kütüphanesine gerek yok.
+ */
 const base =
-  "relative inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition " +
-  "disabled:pointer-events-none disabled:opacity-50 " +
+  "relative inline-flex items-center justify-center gap-2 rounded-lg font-semibold " +
+  "transition duration-150 ease-out active:scale-[0.97] " +
+  "disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 const variants: Record<ButtonVariant, string> = {

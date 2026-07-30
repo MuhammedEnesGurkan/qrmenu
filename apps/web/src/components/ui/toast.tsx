@@ -11,6 +11,8 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@/lib/cn";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { reducedTween, spring } from "@/lib/motion";
 
 type ToastTone = "success" | "error" | "info";
 
@@ -35,6 +37,7 @@ const TONE_STYLE: Record<ToastTone, { box: string; icon: string }> = {
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const reduced = useReducedMotion();
   const counter = useRef(0);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -77,14 +80,24 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         aria-atomic="false"
         className="safe-bottom pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex flex-col items-center gap-2 px-4 pb-4 sm:inset-x-auto sm:right-4 sm:items-end"
       >
+        {/*
+          Yeni bildirim gelince eskiler yerlerini kaydırarak açar (`layout`),
+          süresi dolan aşağı doğru sönerek çıkar. Yığın sıçramaz.
+        */}
+        <AnimatePresence initial={false}>
         {toasts.map((toast) => {
           const style = TONE_STYLE[toast.tone];
           return (
-            <div
+            <motion.div
               key={toast.id}
+              layout={!reduced}
               role={toast.tone === "error" ? "alert" : "status"}
+              initial={reduced ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={reduced ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.98 }}
+              transition={reduced ? reducedTween : spring.surface}
               className={cn(
-                "animate-fade-up pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-xl border px-4 py-3 text-sm font-medium shadow-lg",
+                "pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-xl border px-4 py-3 text-sm font-medium shadow-lg",
                 style.box,
               )}
             >
@@ -100,9 +113,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               >
                 <span aria-hidden="true">×</span>
               </button>
-            </div>
+            </motion.div>
           );
         })}
+        </AnimatePresence>
       </div>
     </ToastContext.Provider>
   );

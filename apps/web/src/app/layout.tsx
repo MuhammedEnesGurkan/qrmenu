@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Inter } from "next/font/google";
+import { MotionProvider } from "@/components/motion";
 import { ServiceWorkerRegistration } from "@/components/service-worker-registration";
 import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
@@ -58,7 +59,9 @@ export default function RootLayout({
         >
           Ana içeriğe atla
         </a>
-        <ToastProvider>{children}</ToastProvider>
+        <MotionProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </MotionProvider>
         <ServiceWorkerRegistration />
       </body>
     </html>

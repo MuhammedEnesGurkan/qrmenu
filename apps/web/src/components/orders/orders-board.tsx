@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Bell, Clock, Receipt, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/cn";
 import {
@@ -22,8 +22,45 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { Tabs } from "@/components/ui/tabs";
 import { EmptyState, ErrorState, SkeletonCards } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
-import { AdminShell, useAdmin } from "../admin/admin-shell";
+import {
+  AnimatePresence,
+  Highlight,
+  SkeletonTransition,
+  StaggerItem,
+  StaggerList,
+} from "@/components/motion";
+import { AdminScreen, useAdmin } from "../admin/admin-shell";
 import { useResource } from "../admin/use-resource";
+
+/**
+ * Hangi siparişlerin bu oturumda yeni geldiğini izler.
+ *
+ * İlk yüklemede mevcut olan her kayıt "görülmüş" sayılır — aksi halde ekran
+ * açılışında tüm kartlar birden parlar ve vurgu anlamını yitirir. Sonrasında
+ * yalnız gerçekten yeni gelen id kısa süre vurgulanır.
+ */
+function useFreshIds(ids: string[]): Set<string> {
+  const seen = useRef<Set<string> | null>(null);
+  const [fresh, setFresh] = useState<Set<string>>(new Set());
+  // Dizi her render'da yeniden kurulduğu için bağımlılık içeriğe bakar.
+  const key = ids.join("|");
+
+  useEffect(() => {
+    const current = key ? key.split("|") : [];
+    if (seen.current === null) {
+      seen.current = new Set(current);
+      return;
+    }
+    const added = current.filter((id) => !seen.current!.has(id));
+    if (added.length === 0) return;
+    added.forEach((id) => seen.current!.add(id));
+    setFresh(new Set(added));
+    const timer = setTimeout(() => setFresh(new Set()), 1400);
+    return () => clearTimeout(timer);
+  }, [key]);
+
+  return fresh;
+}
 
 /** Bir siparişin bulunduğu durumdan izin verilen sonraki geçişler. */
 function nextStates(order: Order): string[] {
@@ -59,7 +96,7 @@ const OPEN_STATES = [
 
 export function OrdersBoard() {
   return (
-    <AdminShell
+    <AdminScreen
       title="Sipariş ve garson akışı"
       description="Canlı akış; bağlantı koparsa 15 saniyede bir otomatik tazelenir."
       breadcrumb={[{ label: "Siparişler" }]}
@@ -68,7 +105,7 @@ export function OrdersBoard() {
       <div className="mx-auto w-full max-w-7xl">
         <OrdersBody />
       </div>
-    </AdminShell>
+    </AdminScreen>
   );
 }
 
@@ -92,7 +129,7 @@ function OrdersBody() {
       ]),
     [],
   );
-  const { data, error, loading, reload } = useResource(loader);
+  const { data, error, reload } = useResource(loader);
 
   // Canlı akış: SSE, düşerse 15 saniyelik polling devreye girer.
   useEffect(() => {
@@ -113,6 +150,7 @@ function OrdersBody() {
 
   const [orders, calls] = data ?? [[], []];
   const openCalls = calls.filter((call) => call.status !== "RESOLVED");
+  const freshOrders = useFreshIds(orders.map((order) => order.id));
 
   const visible = useMemo(() => {
     if (filter === "ALL") return orders;
@@ -167,10 +205,19 @@ function OrdersBody() {
     }
   }
 
-  if (loading && !data) return <SkeletonCards count={4} />;
   if (error && !data) return <ErrorState message={error} onRetry={reload} />;
 
+  /*
+   * Skeleton ve içerik tek bir AnimatePresence içinde eritilir. `loading`
+   * yalnız `data` yokken true: SSE ya da 15 saniyelik polling tazelemesi
+   * ekranı skeleton'a geri düşürmez, sadece değişen kartlar oynar.
+   */
   return (
+    <SkeletonTransition
+      loading={!data}
+      skeleton={<SkeletonCards count={4} />}
+      className="grid gap-6"
+    >
     <div className="grid gap-6">
       {/* Garson çağrıları öncelikli alan */}
       <Card
@@ -195,17 +242,21 @@ function OrdersBody() {
           }
         />
         {openCalls.length > 0 ? (
-          <ul
+          <StaggerList
+            as="ul"
             aria-live="polite"
             className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
           >
-            {openCalls.map((call) => {
+            <AnimatePresence initial={false} mode="popLayout">
+            {openCalls.map((call, index) => {
               const status = describe(WAITER_CALL_STATES, call.status);
               return (
-                <li
+                <StaggerItem
+                  as="li"
                   key={call.id}
+                  index={index}
                   className={cn(
-                    "rounded-xl border p-4",
+                    "rounded-xl border p-4 transition-colors duration-200",
                     call.status === "PENDING"
                       ? "border-destructive/30 bg-destructive-soft"
                       : "border-warning/30 bg-warning-soft",
@@ -247,10 +298,11 @@ function OrdersBody() {
                       </Button>
                     </div>
                   ) : null}
-                </li>
+                </StaggerItem>
               );
             })}
-          </ul>
+            </AnimatePresence>
+          </StaggerList>
         ) : null}
       </Card>
 
@@ -305,32 +357,46 @@ function OrdersBody() {
           }
         />
       ) : (
-        <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {visible.map((order) => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              now={tick}
-              busy={pendingId === order.id}
-              canTransition={canTransition}
-              onTransition={transition}
-            />
-          ))}
-        </ul>
+        /*
+         * Filtre değişince kartlar sertçe kaybolmaz: ayrılanlar exit
+         * animasyonuyla çıkar, kalanlar `layout` sayesinde yeni konumlarına
+         * kayar. Kart boyutu değiştiğinde de sıçrama olmaz.
+         */
+        <StaggerList as="ul" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <AnimatePresence initial={false} mode="popLayout">
+            {visible.map((order, index) => (
+              <OrderCard
+                key={order.id}
+                order={order}
+                index={index}
+                now={tick}
+                fresh={freshOrders.has(order.id)}
+                busy={pendingId === order.id}
+                canTransition={canTransition}
+                onTransition={transition}
+              />
+            ))}
+          </AnimatePresence>
+        </StaggerList>
       )}
     </div>
+    </SkeletonTransition>
   );
 }
 
 function OrderCard({
   order,
+  index,
   now,
+  fresh,
   busy,
   canTransition,
   onTransition,
 }: {
   order: Order;
+  index: number;
   now: number;
+  fresh: boolean;
   busy: boolean;
   canTransition: boolean;
   onTransition: (order: Order, state: string) => void;
@@ -339,7 +405,12 @@ function OrderCard({
   const transitions = canTransition ? nextStates(order) : [];
 
   return (
-    <li className="flex flex-col rounded-2xl border border-border bg-surface p-4 shadow-xs sm:p-5">
+    <StaggerItem as="li" index={index}>
+      {/* Yeni gelen sipariş bir kez halkalanır; tüm liste yeniden oynamaz. */}
+      <Highlight
+        active={fresh}
+        className="flex h-full flex-col rounded-2xl border border-border bg-surface p-4 shadow-xs sm:p-5"
+      >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="type-chit truncate text-base font-semibold text-fg">
@@ -392,7 +463,8 @@ function OrderCard({
       </p>
 
       {transitions.length > 0 ? (
-        <div className="mt-4 flex flex-wrap gap-2">
+        /* mt-auto: kart yükseklikleri eşitlenirken butonlar hep altta kalır. */
+        <div className="mt-4 flex flex-wrap gap-2 pt-0">
           {transitions.map((next) => {
             const target = describe(ORDER_STATES, next);
             return (
@@ -410,6 +482,7 @@ function OrderCard({
           })}
         </div>
       ) : null}
-    </li>
+      </Highlight>
+    </StaggerItem>
   );
 }

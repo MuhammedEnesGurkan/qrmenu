@@ -21,6 +21,11 @@ import { SegmentedControl } from "@/components/ui/tabs";
 import { Alert, EmptyState, ErrorState, Skeleton } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { ProductImage } from "@/components/menu/product-image";
+import {
+  AnimatePresence,
+  StaggerItem,
+  StaggerList,
+} from "@/components/motion";
 import { OrderSuccess, type PlacedOrder } from "./order-success";
 
 type TableProduct = {
@@ -396,17 +401,24 @@ export function TableOrder() {
               >
                 {section.name}
               </h2>
-              <ul className="mt-3 grid gap-2.5">
-                {section.products.map((product) => (
-                  <ProductLine
-                    key={product.id}
-                    product={product}
-                    quantity={cart[product.id] ?? 0}
-                    orderingEnabled={data.orderingEnabled}
-                    onChange={(next) => setQuantity(product.id, next)}
-                  />
-                ))}
-              </ul>
+              {/*
+                Aramada eşleşmeyen ürünler sertçe yok olmaz: çıkış animasyonunu
+                tamamlar, kalanlar `layout` ile yeni sıralarına kayar.
+              */}
+              <StaggerList as="ul" className="mt-3 grid gap-2.5">
+                <AnimatePresence initial={false} mode="popLayout">
+                  {section.products.map((product, index) => (
+                    <ProductLine
+                      key={product.id}
+                      index={index}
+                      product={product}
+                      quantity={cart[product.id] ?? 0}
+                      orderingEnabled={data.orderingEnabled}
+                      onChange={(next) => setQuantity(product.id, next)}
+                    />
+                  ))}
+                </AnimatePresence>
+              </StaggerList>
             </section>
           ))
         )}
@@ -460,10 +472,9 @@ export function TableOrder() {
         </div>
       </div>
 
-      {/* Sepet */}
-      {cartOpen ? (
+      {/* Sepet — `open` prop'u: kapanış animasyonu tamamlanmadan DOM'dan çıkmaz. */}
         <Sheet
-          open
+          open={cartOpen}
           onClose={() => setCartOpen(false)}
           title="Sepetin"
           description={`${data.tableName} · ${
@@ -564,27 +575,31 @@ export function TableOrder() {
             </>
           )}
         </Sheet>
-      ) : null}
     </>
   );
 }
 
 function ProductLine({
   product,
+  index,
   quantity,
   orderingEnabled,
   onChange,
 }: {
   product: TableProduct;
+  index: number;
   quantity: number;
   orderingEnabled: boolean;
   onChange: (next: number) => void;
 }) {
   const disabled = !orderingEnabled || !product.available;
   return (
-    <li
+    <StaggerItem
+      as="li"
+      index={index}
       className={cn(
         "flex min-w-0 items-center gap-3 rounded-xl border border-border bg-surface p-3",
+        "transition-opacity duration-200",
         !product.available && "opacity-70",
       )}
     >
@@ -630,7 +645,7 @@ function ProductLine({
           onChange={onChange}
         />
       ) : null}
-    </li>
+    </StaggerItem>
   );
 }
 
@@ -650,7 +665,7 @@ function QuantityControl({
         aria-label={`${name} adedini azalt`}
         disabled={quantity === 0}
         onClick={() => onChange(quantity - 1)}
-        className="grid size-10 place-items-center rounded-md text-fg-soft transition hover:bg-sunken disabled:opacity-35"
+        className="grid size-10 place-items-center rounded-md text-fg-soft transition duration-150 hover:bg-sunken active:scale-[0.92] disabled:opacity-35 disabled:active:scale-100"
       >
         <Minus size={16} aria-hidden="true" />
       </button>
@@ -664,7 +679,7 @@ function QuantityControl({
         type="button"
         aria-label={`${name} adedini artır`}
         onClick={() => onChange(quantity + 1)}
-        className="grid size-10 place-items-center rounded-md bg-primary text-primary-fg transition hover:bg-primary-hover"
+        className="grid size-10 place-items-center rounded-md bg-primary text-primary-fg transition duration-150 hover:bg-primary-hover active:scale-[0.92]"
       >
         <Plus size={16} aria-hidden="true" />
       </button>

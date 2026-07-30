@@ -1,7 +1,9 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import { useId, useRef, type ReactNode } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/cn";
+import { spring } from "@/lib/motion";
 
 export type TabItem = {
   value: string;
@@ -12,6 +14,10 @@ export type TabItem = {
 /**
  * Erişilebilir tab listesi. Ok tuşlarıyla gezinme desteklenir.
  * Panel içeriğini çağıran taraf yönetir (tek panel senaryosu yaygın).
+ *
+ * Aktif göstergenin arka planı `layoutId` ile paylaşılır: sekme değişince
+ * yeni bir kutu belirmek yerine mevcut kutu kayar. Hızlı art arda tıklamada
+ * motion hedefi güncelleyip aynı animasyonu sürdürür, sıçrama olmaz.
  */
 export function Tabs({
   items,
@@ -29,6 +35,8 @@ export function Tabs({
   className?: string;
 }) {
   const listRef = useRef<HTMLDivElement>(null);
+  const reduced = useReducedMotion();
+  const layoutId = useId();
 
   function onKeyDown(event: React.KeyboardEvent) {
     const keys = ["ArrowRight", "ArrowLeft", "Home", "End"];
@@ -77,19 +85,28 @@ export function Tabs({
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(item.value)}
             className={cn(
-              "inline-flex shrink-0 items-center gap-2 rounded-lg font-medium transition",
+              "relative inline-flex shrink-0 items-center gap-2 rounded-lg font-medium",
+              "transition-colors duration-150",
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               sizing,
               selected
-                ? "bg-primary text-primary-fg shadow-xs"
+                ? "text-primary-fg"
                 : "border border-border bg-surface text-fg-soft hover:border-primary/40 hover:text-primary",
             )}
           >
-            <span className="truncate">{item.label}</span>
+            {selected ? (
+              <motion.span
+                aria-hidden="true"
+                layoutId={reduced ? undefined : `tab-${layoutId}`}
+                transition={spring.indicator}
+                className="absolute inset-0 rounded-lg bg-primary shadow-xs"
+              />
+            ) : null}
+            <span className="relative truncate">{item.label}</span>
             {item.badge != null ? (
               <span
                 className={cn(
-                  "rounded-full px-1.5 py-0.5 text-[0.7rem] font-semibold tabular-nums",
+                  "relative rounded-full px-1.5 py-0.5 text-[0.7rem] font-semibold tabular-nums",
                   selected ? "bg-primary-fg/20" : "bg-sunken text-muted",
                 )}
               >
@@ -117,6 +134,9 @@ export function SegmentedControl({
   ariaLabel: string;
   className?: string;
 }) {
+  const reduced = useReducedMotion();
+  const layoutId = useId();
+
   return (
     <div
       role="radiogroup"
@@ -137,16 +157,23 @@ export function SegmentedControl({
             aria-checked={selected}
             onClick={() => onChange(item.value)}
             className={cn(
-              "min-h-11 rounded-lg px-3 text-sm font-semibold transition",
+              "relative min-h-11 rounded-lg px-3 text-sm font-semibold",
+              "transition-colors duration-150",
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-              selected
-                ? "bg-surface text-fg shadow-sm"
-                : "text-muted hover:text-fg",
+              selected ? "text-fg" : "text-muted hover:text-fg",
             )}
           >
-            <span className="block truncate">{item.label}</span>
+            {selected ? (
+              <motion.span
+                aria-hidden="true"
+                layoutId={reduced ? undefined : `segment-${layoutId}`}
+                transition={spring.indicator}
+                className="absolute inset-0 rounded-lg bg-surface shadow-sm"
+              />
+            ) : null}
+            <span className="relative block truncate">{item.label}</span>
             {item.hint ? (
-              <span className="block text-[0.7rem] font-normal text-muted">
+              <span className="relative block text-[0.7rem] font-normal text-muted">
                 {item.hint}
               </span>
             ) : null}

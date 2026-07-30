@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import {
   Archive,
@@ -18,6 +18,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/field";
+import {
+  AnimatePresence,
+  Highlight,
+  motion,
+  StaggerItem,
+  useReducedMotion,
+} from "@/components/motion";
+import { tween } from "@/lib/motion";
 
 export type CategoryActions = {
   onToggleVisibility: (category: Category) => void;
@@ -44,6 +52,7 @@ export function CategorySection({
   defaultOpen: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const reduced = useReducedMotion();
   const soldOut = category.products.filter((item) => !item.available).length;
 
   return (
@@ -128,45 +137,88 @@ export function CategorySection({
         ) : null}
       </div>
 
-      <div id={`category-panel-${category.id}`} hidden={!open}>
-        {category.products.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-muted sm:px-5">
-            Bu kategoride henüz ürün yok.
-          </p>
-        ) : (
-          <ul className="divide-y divide-border">
-            {category.products.map((product) => (
-              <ProductRow
-                key={product.id}
-                product={product}
-                canWrite={canWrite}
-                busy={busy}
-                actions={actions}
-              />
-            ))}
-          </ul>
-        )}
-      </div>
+      {/*
+       * Akordeon: kategori başına tek bir element yüksekliği animate edilir.
+       * Liste elemanlarının hiçbiri layout animasyonuna girmez, maliyet sabit.
+       * Kapalıyken DOM'dan tamamen çıkar — `hidden` gibi davranır.
+       */}
+      <AnimatePresence initial={false}>
+        {open ? (
+          <motion.div
+            id={`category-panel-${category.id}`}
+            key="panel"
+            initial={reduced ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            animate={reduced ? { opacity: 1 } : { height: "auto", opacity: 1 }}
+            exit={reduced ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            transition={tween.normal}
+            className="overflow-hidden"
+          >
+            {category.products.length === 0 ? (
+              <p className="px-4 py-8 text-center text-sm text-muted sm:px-5">
+                Bu kategoride henüz ürün yok.
+              </p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {/* Silinen ürün önce çıkış animasyonunu tamamlar. */}
+                <AnimatePresence initial={false} mode="popLayout">
+                  {category.products.map((product, index) => (
+                    <ProductRow
+                      key={product.id}
+                      index={index}
+                      product={product}
+                      canWrite={canWrite}
+                      busy={busy}
+                      actions={actions}
+                    />
+                  ))}
+                </AnimatePresence>
+              </ul>
+            )}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </section>
   );
 }
 
 function ProductRow({
   product,
+  index,
   canWrite,
   busy,
   actions,
 }: {
   product: Product;
+  index: number;
   canWrite: boolean;
   busy: boolean;
   actions: CategoryActions;
 }) {
   const [price, setPrice] = useState(String(product.price));
+  const [saved, setSaved] = useState(false);
   const dirty = Number(price) !== product.price && price.trim() !== "";
 
+  /*
+   * Kaydedilen satır kısa süre vurgulanır: kullanıcı hangi ürünün
+   * güncellendiğini listeyi taramadan görür.
+   */
+  useEffect(() => {
+    if (!saved) return;
+    const timer = setTimeout(() => setSaved(false), 1400);
+    return () => clearTimeout(timer);
+  }, [saved]);
+
   return (
-    <li className="flex flex-wrap items-center gap-3 px-4 py-3 sm:flex-nowrap sm:px-5">
+    <StaggerItem
+      as="li"
+      index={index}
+      className="flex flex-wrap items-center gap-3 px-4 py-3 sm:flex-nowrap sm:px-5"
+    >
+    <Highlight
+      active={saved}
+      tone="success"
+      className="flex w-full min-w-0 flex-wrap items-center gap-3 rounded-lg sm:flex-nowrap"
+    >
       <span className="relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg border border-border bg-sunken">
         {product.imageUrl ? (
           <Image
@@ -217,7 +269,10 @@ function ProductRow({
             size="sm"
             variant={dirty ? "primary" : "outline"}
             disabled={busy || !dirty}
-            onClick={() => actions.onSavePrice(product, Number(price))}
+            onClick={() => {
+              actions.onSavePrice(product, Number(price));
+              setSaved(true);
+            }}
           >
             Kaydet
           </Button>
@@ -251,6 +306,7 @@ function ProductRow({
           {formatMoney(product.price, product.currency)}
         </span>
       )}
-    </li>
+    </Highlight>
+    </StaggerItem>
   );
 }

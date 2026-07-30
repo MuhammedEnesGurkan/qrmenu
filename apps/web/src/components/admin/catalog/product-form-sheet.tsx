@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import type { Category, Product } from "@/lib/admin-api";
 import { Button } from "@/components/ui/button";
 import { FormField, Input, Select, Textarea } from "@/components/ui/field";
-import { Sheet } from "@/components/ui/overlay";
+import { Drawer } from "@/components/ui/overlay";
 import { ImagePicker } from "./image-picker";
 
 export type ProductDraft = {
@@ -45,8 +45,6 @@ export function ProductFormSheet({
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  if (!open) return null;
-
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -82,7 +80,8 @@ export function ProductFormSheet({
   }
 
   return (
-    <Sheet
+    /* Mobilde alttan yaprak, masaüstünde sağdan çekmece. */
+    <Drawer
       open={open}
       onClose={onClose}
       title={mode === "create" ? "Yeni ürün ekle" : "Ürünü düzenle"}
@@ -183,7 +182,7 @@ export function ProductFormSheet({
 
         <ImagePicker value={imageUrl} onChange={setImageUrl} />
       </form>
-    </Sheet>
+    </Drawer>
   );
 }
 

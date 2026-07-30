@@ -15,20 +15,26 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { FormField, Input, Textarea } from "@/components/ui/field";
 import { ConfirmDialog, Dialog, Sheet, useConfirm } from "@/components/ui/overlay";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui/states";
-import { AdminShell, useAdmin } from "../admin-shell";
+import { AdminScreen, useAdmin } from "../admin-shell";
 import { useAction, useResource } from "../use-resource";
+import {
+  AnimatePresence,
+  StaggerItem,
+  StaggerList,
+  useRetained,
+} from "@/components/motion";
 import { CategorySection, type CategoryActions } from "./category-section";
 import { ProductFormSheet, type ProductDraft } from "./product-form-sheet";
 
 export function CatalogManager() {
   return (
-    <AdminShell
+    <AdminScreen
       title="Menü ve ürünler"
       description="Kategorileri, ürünleri, fiyatları ve mevcutluk durumunu buradan yönetirsin."
       breadcrumb={[{ label: "Menü ve ürünler" }]}
     >
       <CatalogBody />
-    </AdminShell>
+    </AdminScreen>
   );
 }
 
@@ -52,6 +58,7 @@ function CatalogBody() {
   const [productSheet, setProductSheet] = useState<ProductSheetState>(null);
   const archiveCategory = useConfirm<Category>();
   const archiveProduct = useConfirm<Product>();
+  const shownSheet = useRetained(productSheet);
 
   const filtered = useMemo(() => {
     if (!catalog) return [];
@@ -228,18 +235,22 @@ function CatalogBody() {
           }
         />
       ) : (
-        <div className="grid gap-4">
-          {filtered.map((category) => (
-            <CategorySection
-              key={category.id}
-              category={category}
-              canWrite={canWrite}
-              busy={busy}
-              actions={actions}
-              defaultOpen={filtered.length <= 4 || query.trim().length > 0}
-            />
-          ))}
-        </div>
+        /* Arama daraldıkça kategoriler çıkışını tamamlayarak ayrılır. */
+        <StaggerList className="grid gap-4">
+          <AnimatePresence initial={false} mode="popLayout">
+            {filtered.map((category, index) => (
+              <StaggerItem key={category.id} index={index}>
+                <CategorySection
+                  category={category}
+                  canWrite={canWrite}
+                  busy={busy}
+                  actions={actions}
+                  defaultOpen={filtered.length <= 4 || query.trim().length > 0}
+                />
+              </StaggerItem>
+            ))}
+          </AnimatePresence>
+        </StaggerList>
       )}
 
       {/* Menü bilgileri */}
@@ -291,27 +302,28 @@ function CatalogBody() {
         }}
       />
 
-      {/* Ürün formu */}
-      {productSheet ? (
+      {/*
+        Ürün formu. `shownSheet` kapanış animasyonu boyunca son durumu tutar,
+        böylece çekmece boşalmış bir kabuk olarak dışarı kaymaz.
+      */}
+      {shownSheet ? (
         <ProductFormSheet
           key={
-            productSheet.mode === "edit"
-              ? productSheet.product.id
-              : `new-${productSheet.categoryId}`
+            shownSheet.mode === "edit"
+              ? shownSheet.product.id
+              : `new-${shownSheet.categoryId}`
           }
-          open
-          mode={productSheet.mode}
+          open={productSheet !== null}
+          mode={shownSheet.mode}
           categories={catalog.categories}
-          product={
-            productSheet.mode === "edit" ? productSheet.product : undefined
-          }
+          product={shownSheet.mode === "edit" ? shownSheet.product : undefined}
           defaultCategoryId={
-            productSheet.mode === "create" ? productSheet.categoryId : undefined
+            shownSheet.mode === "create" ? shownSheet.categoryId : undefined
           }
           busy={busy}
           onClose={() => setProductSheet(null)}
           onSubmit={(draft: ProductDraft) =>
-            productSheet.mode === "create"
+            shownSheet.mode === "create"
               ? run(
                   () => api("/api/admin/catalog/products", json("POST", draft)),
                   "Ürün eklendi.",
@@ -319,7 +331,7 @@ function CatalogBody() {
               : run(
                   () =>
                     api(
-                      `/api/admin/catalog/products/${productSheet.product.id}`,
+                      `/api/admin/catalog/products/${shownSheet.product.id}`,
                       json("PATCH", draft),
                     ),
                   "Ürün bilgileri güncellendi.",
@@ -380,10 +392,9 @@ function CategoryDialog({
   onClose: () => void;
   onSubmit: (body: { name: string; sortOrder: number }) => void;
 }) {
-  if (!open) return null;
   return (
     <Dialog
-      open
+      open={open}
       onClose={onClose}
       size="sm"
       title={category ? "Kategoriyi düzenle" : "Yeni kategori"}
@@ -448,10 +459,9 @@ function MenuSettingsDialog({
   onClose: () => void;
   onSave: (body: Record<string, string | null>) => void;
 }) {
-  if (!open) return null;
   return (
     <Sheet
-      open
+      open={open}
       onClose={onClose}
       title="Menü bilgileri"
       description="Bu bilgiler müşteri tarafındaki menü başlığında görünür."
