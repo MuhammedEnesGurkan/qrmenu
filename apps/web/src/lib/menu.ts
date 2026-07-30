@@ -1,11 +1,26 @@
 import { z } from "zod";
 
+/**
+ * Görsel adresleri iki biçimde gelebilir:
+ * - Yüklenen assetler için aynı origin yolu (`/api/public/assets/{id}`)
+ * - Elle girilen mutlak `https://` adresleri
+ * Diğer şemalar (javascript:, data: vb.) güvenlik nedeniyle atılır.
+ */
+const imageUrlSchema = z
+  .string()
+  .nullable()
+  .transform((value) => {
+    if (!value) return null;
+    if (value.startsWith("/") && !value.startsWith("//")) return value;
+    return /^https?:\/\//i.test(value) ? value : null;
+  });
+
 const productSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
   description: z.string().nullable(),
   allergenInfo: z.string().nullable(),
-  imageUrl: z.string().url().nullable(),
+  imageUrl: imageUrlSchema,
   price: z.number().nonnegative(),
   currency: z.string().length(3),
   available: z.boolean(),
@@ -15,10 +30,18 @@ const menuSchema = z.object({
   slug: z.string(),
   name: z.string(),
   description: z.string().nullable(),
-  logoUrl: z.string().url().nullable(),
+  logoUrl: imageUrlSchema,
   locale: z.string(),
   availableLocales: z.array(z.string()).optional(),
-  branding: z.object({primaryColor:z.string(),surfaceColor:z.string(),font:z.string(),layout:z.string(),hidePoweredBy:z.boolean()}).optional(),
+  branding: z
+    .object({
+      primaryColor: z.string(),
+      surfaceColor: z.string(),
+      font: z.string(),
+      layout: z.string(),
+      hidePoweredBy: z.boolean(),
+    })
+    .optional(),
   categories: z.array(
     z.object({
       name: z.string(),
@@ -99,14 +122,70 @@ export async function getPublicMenu(slug: string,locale?:string): Promise<Public
   }
 }
 
-export function formatMoney(
-  amount: number,
-  currency: string,
-  locale = "tr-TR",
-) {
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  }).format(amount);
+export { formatMoney } from "./format";
+
+export type MenuLayout = "CARDS" | "COMPACT";
+
+export type Branding = {
+  primaryColor: string;
+  surfaceColor: string;
+  font: string;
+  layout: MenuLayout;
+  hidePoweredBy: boolean;
+};
+
+export const DEFAULT_BRANDING: Branding = {
+  primaryColor: "#14624b",
+  surfaceColor: "#ffffff",
+  font: "SYSTEM",
+  layout: "CARDS",
+  hidePoweredBy: false,
+};
+
+const FONT_STACKS: Record<string, string> = {
+  SERIF: 'Georgia, "Times New Roman", serif',
+  ROUNDED: 'ui-rounded, "SF Pro Rounded", var(--font-sans)',
+  SYSTEM: "var(--font-sans)",
+};
+
+export function resolveBranding(menu: PublicMenu): Branding {
+  const raw = menu.branding;
+  if (!raw) return DEFAULT_BRANDING;
+  return {
+    primaryColor: raw.primaryColor || DEFAULT_BRANDING.primaryColor,
+    surfaceColor: raw.surfaceColor || DEFAULT_BRANDING.surfaceColor,
+    font: raw.font || DEFAULT_BRANDING.font,
+    layout: raw.layout === "COMPACT" ? "COMPACT" : "CARDS",
+    hidePoweredBy: Boolean(raw.hidePoweredBy),
+  };
+}
+
+export function fontStack(font: string) {
+  return FONT_STACKS[font] ?? FONT_STACKS.SYSTEM;
+}
+
+/** İşletme adından iki harfli, logo yoksa kullanılacak marka baş harfleri. */
+export function brandInitials(name: string) {
+  const words = name
+    .trim()
+    .split(/\s+/)
+    .filter((word) => /\p{L}/u.test(word));
+  if (words.length === 0) return "?";
+  if (words.length === 1) return words[0].slice(0, 2).toLocaleUpperCase("tr-TR");
+  return (words[0][0] + words[1][0]).toLocaleUpperCase("tr-TR");
+}
+
+/** Kategori adından kararlı ve URL güvenli bir bölüm kimliği üretir. */
+export function categoryAnchor(name: string, index: number) {
+  const slug = name
+    .toLocaleLowerCase("tr-TR")
+    .replace(/ğ/g, "g")
+    .replace(/ü/g, "u")
+    .replace(/ş/g, "s")
+    .replace(/ı/g, "i")
+    .replace(/ö/g, "o")
+    .replace(/ç/g, "c")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return `kategori-${index}-${slug || "bolum"}`;
 }

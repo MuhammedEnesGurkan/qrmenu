@@ -349,6 +349,70 @@ sonuçları ve varsa kalan işler bu dosyaya eklenecektir.
   `POST /backend/api/auth/register` göndermesini doğrulayan regresyon testi
   eklendi.
 
+## 25 Temmuz 2026 — Arayüz yeniden tasarımı (frontend)
+
+- `globals.css` gerçek bir tasarım token sistemine dönüştürüldü: background,
+  surface, elevated, sunken, foreground, muted, primary/hover/soft, accent,
+  border, input, ring, success, warning, destructive, info, inverse, radius ve
+  gölge ölçekleri semantik CSS değişkenleri olarak tanımlandı. Componentlerdeki
+  `#176b52`, `#17201b`, `#fffdf8`, `#68736b` gibi ham hex kullanımı kaldırıldı.
+- Sistem fontu yerine `next/font/google` üzerinden Inter (`latin`, `latin-ext`)
+  kullanılıyor; Türkçe karakterler alt kümeye dahil.
+- `src/components/ui/` altında ortak component seti oluşturuldu: Button,
+  IconButton, Input, Textarea, Select, Checkbox, Switch, Badge, Card, StatCard,
+  Dialog, Sheet, ConfirmDialog, Tabs, SegmentedControl, DropdownMenu, Toast,
+  Skeleton, EmptyState, ErrorState, Alert, PageHeader, SectionHeader,
+  Breadcrumb, FormField.
+- Tüm `/admin` route'ları ortak `AdminShell` kullanıyor: masaüstünde gruplanmış
+  sidebar, mobilde açılır navigasyon, breadcrumb, kullanıcı/rol bilgisi, aktif
+  şube seçimi ve çıkış. Navigasyon oturumun izin listesine göre üretiliyor;
+  yetkisiz seçenek gösterilmiyor.
+- Yeni frontend route'ları eklendi: `/admin/menu`, `/admin/personel`,
+  `/admin/eklentiler`. `/admin` göreve odaklı bir genel bakış ekranına dönüştü.
+- Landing page sticky navbar, hero, güven bandı, özellikler, nasıl çalışır,
+  eklenti modeli, son CTA ve footer bölümleriyle yeniden yazıldı.
+- Public menü `/m/{slug}`: gerçek logo veya işletme adından üretilen baş harf
+  fallback'i, sticky kategori navigasyonu ve smooth scroll, erişilebilir arama,
+  `next/image` ile ürün görselleri, CARDS ve COMPACT için gerçekten farklı iki
+  yerleşim, mobilde bottom sheet / masaüstünde dialog ürün detayı, marka
+  renginin WCAG kontrastıyla uygulanması.
+- `/siparis` ekranı: sticky kategori navigasyonu, ürün görselleri, net adet
+  kontrolleri, sabit sepet çubuğu, bottom sheet sepet, servis biçimi segment
+  kontrolü, garson çağırmanın ana CTA'dan ayrılması ve güçlü sipariş başarı
+  ekranı.
+- Backend enumları son kullanıcıya ham gösterilmiyor; sipariş, mutfak, garson
+  çağrısı, eklenti, import ve fiyat batch durumları için Türkçe etiket eşlemesi
+  eklendi (`src/lib/labels.ts`).
+- `window.alert` kaldırıldı; tüm geri bildirimler toast ile veriliyor.
+  Kategori/ürün arşivleme, personel devre dışı bırakma, menü yayından kaldırma,
+  eklenti iptali, QR yenileme, import ve toplu fiyat işlemleri onay diyaloğu
+  istiyor.
+- Tek satıra sıkıştırılmış `admin-dashboard.tsx`, `table-admin.tsx`,
+  `staff-orders.tsx`, `kitchen-board.tsx`, `product-features.tsx`,
+  `catalog-pro.tsx` ve `table-order.tsx` dosyaları okunabilir ve küçük
+  componentlere bölünmüş yapılara dönüştürüldü.
+- Frontend hatası düzeltildi: yüklenen görseller `/api/public/assets/{id}`
+  biçiminde göreli yol döndüğü için public menü Zod şeması (`url()`) menüyü
+  reddediyordu; şema aynı-origin yolları ve `https://` adreslerini kabul edecek,
+  diğer şemaları atacak biçimde güncellendi.
+- Yatay taşmayı kaynağında engellemek için kolon tanımı olmayan grid'lere
+  `minmax(0, 1fr)` kuralı eklendi; kategori şeridi otomatik ortalaması
+  `scrollIntoView` yerine yalnız şeridin `scrollLeft` değerini güncelliyor
+  (WebKit'te sayfayı geri sıçratıyordu).
+- Backend, migration, endpoint URL'leri, oturum/CSRF, tenant-şube izolasyonu,
+  rol izinleri, QR token akışı, sipariş durum makinesi, sunucu tarafı
+  fiyatlama, Idempotency-Key ve eklenti entitlement kontrolleri değiştirilmedi.
+- Yeni bağımlılık: yalnız `lucide-react`. Global state kütüphanesi veya ağır UI
+  framework eklenmedi.
+- Doğrulama: TypeScript başarılı, Vitest 14/14, Next.js production build
+  başarılı, `npm audit` 0 açık, Playwright 144/144. Playwright matrisi 320, 390,
+  430, 768, 1280 ve 1440 px genişlikleri ile Chromium, WebKit ve Firefox'u
+  kapsıyor; 14 route × 8 kırılım noktasında yatay taşma olmadığı doğrulandı.
+- Bilinen eksik: yönetim ekranlarının uçtan uca doğrulaması mock API ile
+  yapıldı; gerçek Supabase + Spring Boot ile smoke test tekrar çalıştırılmalı.
+  Dar ekranda aktif şube değiştirme üst bardan kaldırıldı, Ayarlar > Şubeler
+  üzerinden yapılıyor.
+
 ## Kayıt kuralı
 
 Her yeni aşamada bu belgeye aşağıdakiler eklenecektir:
